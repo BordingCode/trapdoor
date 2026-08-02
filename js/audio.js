@@ -89,5 +89,16 @@ export const sfx = {
     notes.forEach((f, i) => tone({ freq: f, type: 'sine', dur: 0.7, gain: 0.15, delay: i * 0.12 }));
   },
   click() { tone({ freq: 660, type: 'sine', dur: 0.07, gain: 0.16 }); },
+  // taking a nerve: a bright rising pair, the only friendly sound in the game
+  nerve() {
+    tone({ freq: 784, type: 'triangle', dur: 0.2, gain: 0.16 });
+    tone({ freq: 1175, type: 'sine', dur: 0.3, gain: 0.12, delay: 0.07 });
+  },
+  // spending one: a cold shimmer as the level's true face surfaces
+  glimpse() {
+    tone({ freq: 1568, type: 'sine', slide: -430, dur: 0.5, gain: 0.09 });
+    tone({ freq: 1046, type: 'sine', dur: 0.45, gain: 0.07, delay: 0.04 });
+    noise({ dur: 0.4, gain: 0.05, freq: 3200, type: 'bandpass', q: 2, slide: -1800 });
+  },
   taunt() { tone({ freq: 220, type: 'sine', slide: 90, dur: 0.18, gain: 0.1 }); },
 };

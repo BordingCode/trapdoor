@@ -21,7 +21,7 @@ function mulberry32(a) {
 
 // Walk at the door; jump at walls, gaps, hazards and anything sharp coming at you.
 // Everything else is random flailing, which is roughly how a human plays it too.
-function play(level, seed, maxTime = 34, maxDeaths = 30) {
+function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false) {
   const rnd = mulberry32(seed);
   const w = new World(level);
   let t = 0, deaths = 0;
@@ -30,7 +30,8 @@ function play(level, seed, maxTime = 34, maxDeaths = 30) {
 
   while (t < maxTime) {
     const p = w.player;
-    const d = w.door;
+    // greedy runs detour for the nerve first, then head for the door
+    const d = (greedy && w.nerve && !w.nerve.got) ? w.nerve : w.door;
     const dcx = d.x + d.w / 2;
     const pcx = p.x + p.w / 2;
     let dir = Math.abs(dcx - pcx) < 7 ? 0 : Math.sign(dcx - pcx);
@@ -91,24 +92,27 @@ function play(level, seed, maxTime = 34, maxDeaths = 30) {
     w.events.length = 0;
     t += STEP;
 
-    if (w.state === 'won') return { ok: true, t, deaths, trace };
+    if (w.state === 'won') return { ok: true, t, deaths, trace, nerve: w.nerveTaken };
     if (w.state === 'dead') {
       deaths++;
-      if (deaths > maxDeaths) return { ok: false, t, deaths, why: 'died ' + deaths + 'x (last: ' + w.deathCause + ')' };
+      if (deaths > maxDeaths) return { ok: false, t, deaths, nerve: w.nerveTaken, why: 'died ' + deaths + 'x (last: ' + w.deathCause + ')' };
       w.reset();
       jumpFrames = 0; held = false; waitFor = 0;
     }
   }
-  return { ok: false, t, deaths, why: 'ran out of time (' + maxTime + 's)' };
+  return { ok: false, t, deaths, nerve: w.nerveTaken, why: 'ran out of time (' + maxTime + 's)' };
 }
 
 // Levels whose solution needs patience the bot doesn't have (waiting for a moving
 // platform to come back). They're covered by hand-written routes in routes.mjs instead.
 const ROUTED = new Set([22]);
+// levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
+const ROUTED_NERVE = new Set([18]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);
-let fails = 0;
+let fails = 0, nerved = 0;
+const unreached = [];
 
 for (const [L, i] of list) {
   if (only == null && ROUTED.has(i)) {
@@ -121,13 +125,28 @@ for (const [L, i] of list) {
     if (r.ok) { best = { ...r, seed: s }; break; }
     if (!best || r.t > best.t) best = r;
   }
-  if (best.ok) {
-    console.log(`  ok   ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} solved in ${best.t.toFixed(1)}s after ${best.deaths} deaths (seed ${best.seed})`);
-  } else {
+  if (!best.ok) {
     fails++;
     console.log(`  FAIL ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} ${best.why}`);
+    continue;
   }
+  // second pass: can it also be finished WITH the nerve? The nerve sits off the safe
+  // line on purpose, so a bot failure here is a warning to check by hand, not a bug.
+  let nerveRun = null;
+  if (L.nerve) {
+    for (let s = 1; s <= 160; s++) {
+      const r = play(L, s * 6961 + i, 34, 30, true);
+      if (r.ok && r.nerve) { nerveRun = { ...r, seed: s }; break; }
+    }
+    if (nerveRun) nerved++; else if (!ROUTED_NERVE.has(i)) unreached.push(`${i + 1}. ${L.name}`);
+  }
+  const tag = !L.nerve ? ''
+    : (nerveRun ? `  ◆ +nerve in ${nerveRun.t.toFixed(1)}s`
+      : (ROUTED_NERVE.has(i) ? '  ◆ nerve routed in routes.mjs' : '  ◆ nerve NOT taken by bot'));
+  console.log(`  ok   ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} solved in ${best.t.toFixed(1)}s after ${best.deaths} deaths (seed ${best.seed})${tag}`);
 }
 
-console.log(fails ? `\n${fails} level(s) the bot could not finish.` : `\nAll ${list.length} levels solvable.`);
+const withNerve = list.filter(([L, i]) => L.nerve && !(only == null && (ROUTED.has(i) || ROUTED_NERVE.has(i)))).length;
+console.log(fails ? `\n${fails} level(s) the bot could not finish.` : `\nAll levels solvable.`);
+console.log(`Nerve taken by the bot on ${nerved}/${withNerve} levels.` + (unreached.length ? ' Check by hand: ' + unreached.join(', ') : ''));
 process.exit(fails ? 1 : 0);

@@ -6,22 +6,22 @@ import { LEVELS } from '../js/game/levels.js';
 
 const STEP = 1 / 60;
 
-function run(levelIndex, policy, maxTime = 30) {
+function run(levelIndex, policy, maxTime = 30, holdFrames = 10) {
   const w = new World(LEVELS[levelIndex]);
   let t = 0, jf = 0, held = false, deaths = 0;
   while (t < maxTime) {
     const { dir, jump } = policy(w);
-    if (jump && w.player.grounded && jf <= 0) jf = 10;
+    if (jump && w.player.grounded && jf <= 0) jf = holdFrames;
     const jn = jf > 0;
     if (jf > 0) jf--;
     w.step(STEP, { left: dir < 0, right: dir > 0, jumpHeld: jn, jumpPressed: jn && !held });
     held = jn;
     w.events.length = 0;
     t += STEP;
-    if (w.state === 'won') return { ok: true, t, deaths };
+    if (w.state === 'won') return { ok: true, t, deaths, nerve: w.nerveTaken };
     if (w.state === 'dead') { deaths++; w.reset(); jf = 0; held = false; }
   }
-  return { ok: false, t, deaths };
+  return { ok: false, t, deaths, nerve: w.nerveTaken };
 }
 
 // "Nowhere To Stand": wait at the lip, board the platform on its way back, transfer when
@@ -49,15 +49,35 @@ function platformPolicy(w) {
   return { dir: 1, jump: false };
 }
 
+// "Gauntlet" taking the nerve: clear the spike bank, hold back while the block falls
+// rather than running under it, hop the block once it has landed, then jump for the
+// nerve — which drops you under the descending crusher and spends the margin you had.
+function gauntletPolicy(w) {
+  const p = w.player;
+  const x = p.x;
+  if (x >= 228 && x <= 248 && p.grounded) return { dir: 1, jump: true };   // over the spikes
+  const falling = w.movers.some((m) => m.grav && m.delay <= 0);
+  if (falling && x > 395) return { dir: 0, jump: false };                   // let it land
+  if (x >= 400 && x <= 428 && p.grounded && !falling) return { dir: 1, jump: true }; // hop it
+  if (x >= 528 && x <= 548 && p.grounded) return { dir: 1, jump: true };    // the nerve
+  return { dir: x < 700 ? 1 : 0, jump: false };
+}
+
 const cases = [
-  { i: 22, name: 'Nowhere To Stand', policy: platformPolicy },
+  { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
+  { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
 ];
 
 let fails = 0;
 for (const c of cases) {
-  const r = run(c.i, c.policy);
-  if (r.ok) console.log(`  ok   ${c.i + 1}. ${c.name} — routed in ${r.t.toFixed(1)}s (${r.deaths} deaths)`);
-  else { fails++; console.log(`  FAIL ${c.i + 1}. ${c.name} — route did not reach the door`); }
+  const r = run(c.i, c.policy, 30, c.requireNerve ? 22 : 10);
+  const nerveOk = !c.requireNerve || r.nerve;
+  if (r.ok && nerveOk) {
+    console.log(`  ok   ${c.i + 1}. ${c.name} — routed in ${r.t.toFixed(1)}s (${r.deaths} deaths)${c.requireNerve ? ' ◆ nerve taken' : ''}`);
+  } else {
+    fails++;
+    console.log(`  FAIL ${c.i + 1}. ${c.name} — ${!r.ok ? 'route did not reach the door' : 'reached the door but missed the nerve'}`);
+  }
 }
 console.log(fails ? `\n${fails} route(s) failed.` : `\nAll ${cases.length} route(s) reach the door.`);
 process.exit(fails ? 1 : 0);

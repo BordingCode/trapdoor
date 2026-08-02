@@ -23,6 +23,7 @@ export const LEVELS = [
   {
     name: 'Welcome',
     chapter: 0,
+    nerve: [12, 8],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'time', s: 0.5, do: [{ t: 'say', text: 'Get to the door. That is the whole game.', life: 3.4 }] },
@@ -32,6 +33,7 @@ export const LEVELS = [
   {
     name: 'Trapdoor',
     chapter: 0,
+    nerve: [10, 9],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'stand', x: 10, y: 11, w: 2, do: [
@@ -44,6 +46,7 @@ export const LEVELS = [
   {
     name: 'Spike Strip',
     chapter: 0,
+    nerve: [11, 9],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 9, do: [
@@ -56,6 +59,7 @@ export const LEVELS = [
   {
     name: 'The Squeeze',
     chapter: 0,
+    nerve: [11, 8],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 6, do: [
@@ -68,6 +72,7 @@ export const LEVELS = [
   {
     name: 'Fake Floor',
     chapter: 0,
+    nerve: [10, 8],
     grid: [
       E, E, E, E, E, E, E, E, E,
       '.......###==#####.......',
@@ -83,6 +88,7 @@ export const LEVELS = [
   {
     name: 'The Door Moves',
     chapter: 0,
+    nerve: [12, 7],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'door', d: 2.4, do: [
@@ -100,6 +106,7 @@ export const LEVELS = [
   {
     name: 'Overhead',
     chapter: 0,
+    nerve: [16, 9],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'zone', x: 10, y: 9, w: 3, h: 2, do: [
@@ -112,6 +119,7 @@ export const LEVELS = [
   {
     name: 'Both, Actually',
     chapter: 0,
+    nerve: [12, 9],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'stand', x: 9, y: 11, w: 2, do: [
@@ -127,6 +135,7 @@ export const LEVELS = [
   {
     name: 'Escort',
     chapter: 1,
+    nerve: [21, 9],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'door', d: 2.2, do: [{ t: 'door', x: 14, y: 10 }, { t: 'say', text: 'Nope.', life: 1.6 }] },
@@ -144,6 +153,7 @@ export const LEVELS = [
   {
     name: 'Crossfire',
     chapter: 1,
+    nerve: [12, 10],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 5, every: 1.5, do: [{ t: 'dart', x: 23, y: 10, vx: -270 }] },
@@ -153,6 +163,7 @@ export const LEVELS = [
   {
     name: 'Black Ice',
     chapter: 1,
+    nerve: [14, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       '..S..........^^......D..',
@@ -168,6 +179,7 @@ export const LEVELS = [
   {
     name: 'Do Not Stop',
     chapter: 1,
+    nerve: [13, 8],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 4, do: [
@@ -187,6 +199,7 @@ export const LEVELS = [
   {
     name: 'Sweeper',
     chapter: 1,
+    nerve: [14, 10],
     grid: [
       '......##################',
       '......##################',
@@ -210,6 +223,7 @@ export const LEVELS = [
   {
     name: 'Down Is A Suggestion',
     chapter: 1,
+    nerve: [14, 1],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 9, do: [
@@ -224,6 +238,7 @@ export const LEVELS = [
   {
     name: 'Rising',
     chapter: 1,
+    nerve: [14, 10],
     grid: [
       E, E,
       '....................D...',
@@ -247,6 +262,7 @@ export const LEVELS = [
   {
     name: 'Crush Hour',
     chapter: 1,
+    nerve: [12, 8],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'pastx', x: 8, do: [
@@ -261,6 +277,7 @@ export const LEVELS = [
   {
     name: 'Lights Out',
     chapter: 2,
+    nerve: [14, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       SD,
@@ -277,6 +294,7 @@ export const LEVELS = [
   {
     name: 'Cascade',
     chapter: 2,
+    nerve: [11, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       SD,
@@ -290,6 +308,7 @@ export const LEVELS = [
   {
     name: 'Gauntlet',
     chapter: 2,
+    nerve: [17, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       '..S...................D.',
@@ -307,6 +326,7 @@ export const LEVELS = [
   {
     name: 'The Chase',
     chapter: 2,
+    nerve: [11, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       '..S........^^........D..',
@@ -331,6 +351,7 @@ export const LEVELS = [
   {
     name: 'Reverse',
     chapter: 2,
+    nerve: [8, 1],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       '..S..........^^......D..',
@@ -352,6 +373,7 @@ export const LEVELS = [
   {
     name: 'Ice Palace',
     chapter: 2,
+    nerve: [10, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       SD,
@@ -365,6 +387,7 @@ export const LEVELS = [
   {
     name: 'Nowhere To Stand',
     chapter: 2,
+    nerve: [11, 9],
     grid: [
       E, E, E, E, E, E, E, E, E, E,
       SD,
@@ -383,6 +406,7 @@ export const LEVELS = [
   {
     name: 'The Last Door',
     chapter: 2,
+    nerve: [12, 7],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'door', d: 2.3, do: [
@@ -403,7 +427,78 @@ export const LEVELS = [
       ] },
     ],
   },
+
+  // ------------------------------------------------------- BONUS (nerve-locked)
+  // One per chapter, opened by collecting all 8 nerves in that chapter. These are
+  // allowed to be mean — you only get here by volunteering for danger eight times.
+  // They live at the END of the array so existing level indices (and saves) never move.
+  {
+    name: 'Ground Truth',
+    chapter: 0,
+    bonus: true,
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'You came back. Brave.', life: 2.6 }] },
+      { on: 'stand', x: 7, y: 11, w: 2, do: [
+        { t: 'set', x: 7, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'spikes', x: 11, y: 10, w: 2, h: 1, from: 'up', d: 0.12 },
+        { t: 'shake', mag: 6 },
+      ] },
+      { on: 'pastx', x: 12, do: [
+        { t: 'crush', x: 15, y: 0, w: 5, h: 6, vy: 66, sy: 5 },
+        { t: 'say', text: 'And again.', life: 2 },
+      ] },
+    ],
+  },
+  {
+    name: 'Sharp Enough',
+    chapter: 1,
+    bonus: true,
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      '..S.......^^.........D..',
+      F, F,
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice, and company.', life: 2.6 }] },
+      { on: 'pastx', x: 4, every: 1.35, do: [{ t: 'dart', x: 23, y: 10, vx: -285 }] },
+      { on: 'door', d: 2.4, do: [
+        { t: 'door', x: 6, y: 10 },
+        { t: 'spikes', x: 15, y: 10, w: 2, h: 1, from: 'up', d: 0.25 },
+        { t: 'say', text: 'Slide back, then.', life: 2.6 },
+      ] },
+    ],
+  },
+  {
+    name: 'The Whole Truth',
+    chapter: 2,
+    bonus: true,
+    // `liar` corrupts the glimpse: the level shows you traps it has no intention of
+    // springing, and quietly omits one it does. The last lie the game tells you.
+    liar: true,
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'Ask me anything.', life: 2.8 }] },
+      { on: 'stand', x: 6, y: 11, w: 2, do: [
+        { t: 'set', x: 6, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'shake', mag: 5 },
+      ] },
+      { on: 'pastx', x: 10, do: [
+        { t: 'spikes', x: 13, y: 10, w: 2, h: 1, from: 'up' },
+        { t: 'say', text: 'I may have misspoken.', life: 2.4 },
+      ] },
+      { on: 'pastx', x: 15, do: [
+        { t: 'drop', x: 18, y: 0, w: 2, h: 1 },
+        { t: 'grav', v: -1, d: 0.9 },
+        { t: 'door', x: 21, y: 1, d: 1.0 },
+        { t: 'say', text: 'Last one. Truly.', life: 2.8, d: 0.9 },
+      ] },
+    ],
+  },
 ];
+
+// index of the last level of the main run — everything after it is nerve-locked bonus
+export const MAIN_LEVELS = LEVELS.findIndex((L) => L.bonus);
 
 export const CHAPTERS = [
   { name: 'Ground Rules', tag: 'The floor is your friend.' },

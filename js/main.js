@@ -5,7 +5,7 @@ import { Controls } from './engine/input.js';
 import { Fx } from './engine/fx.js';
 import { World } from './game/world.js';
 import { render } from './game/render.js';
-import { LEVELS, CHAPTERS, TAUNTS } from './game/levels.js';
+import { LEVELS, CHAPTERS, TAUNTS, MAIN_LEVELS } from './game/levels.js';
 import { load, save, wipe } from './game/save.js';
 import { sfx, unlock, setMuted, isMuted } from './audio.js';
 
@@ -44,6 +44,7 @@ controls.onKey = (k) => {
   if (G.screen !== 'play') return;
   if (k === 'Escape' || k === 'p' || k === 'P') showPause();
   if (k === 'r' || k === 'R') restart();
+  if (k === 'e' || k === 'E' || k === 'Shift') tryGlimpse();
 };
 
 // ---------------------------------------------------------------- loop
@@ -90,6 +91,8 @@ function drainEvents(w) {
       case 'doormove': sfx.trap(); fx.quake(4); break;
       case 'taunt': sfx.taunt(); break;
       case 'shake': fx.quake(e.a); break;
+      case 'nerve': onNerve(e.a, e.b); break;
+      case 'glimpse': sfx.glimpse(); fx.quake(2, 0.15); break;
       case 'die': onDeath(w, e.a, e.b, e.c); break;
       case 'win': onWin(w); break;
       default: break;
@@ -118,6 +121,55 @@ function onDeath(w, x, y, cause) {
   }
 }
 
+// Picking up a nerve banks it immediately — you keep it even if the grab kills you
+// two seconds later, which it often will.
+function onNerve(x, y) {
+  sfx.nerve();
+  fx.burst(x, y, 18, '#6ee7ff', { speed: 190, size: 5, life: 0.8, g: 0.3 });
+  fx.text(x, y - 14, '+1 NERVE', '#6ee7ff', 1.5);
+  fx.quake(3);
+  navigator.vibrate?.([12, 30, 12]);
+  const s = G.save;
+  if (!s.nerves[G.level]) {
+    s.nerves[G.level] = true;
+    s.nerve = (s.nerve || 0) + 1;
+    save(s);
+  }
+  updateHud();
+}
+
+function tryGlimpse() {
+  const s = G.save;
+  if (G.screen !== 'play' || !G.world) return;
+  if ((s.nerve || 0) <= 0 || !G.world.useGlimpse()) {
+    sfx.click();
+    return;
+  }
+  s.nerve -= 1;
+  save(s);
+  const b = $('#btn-glimpse');
+  b.classList.remove('flash');
+  void b.offsetWidth;   // restart the animation
+  b.classList.add('flash');
+  updateHud();
+}
+
+// how many of a chapter's nerves you've found (bonus levels don't carry one)
+function chapterNerves(ci) {
+  let got = 0, total = 0;
+  LEVELS.forEach((L, i) => {
+    if (L.chapter !== ci || L.bonus || !L.nerve) return;
+    total++;
+    if (G.save.nerves[i]) got++;
+  });
+  return { got, total };
+}
+
+function bonusUnlocked(ci) {
+  const { got, total } = chapterNerves(ci);
+  return total > 0 && got >= total;
+}
+
 function onWin(w) {
   sfx.door();
   sfx.win();
@@ -128,7 +180,7 @@ function onWin(w) {
 // ---------------------------------------------------------------- flow
 function startLevel(i) {
   G.level = Math.max(0, Math.min(LEVELS.length - 1, i));
-  G.world = new World(LEVELS[G.level]);
+  G.world = new World(LEVELS[G.level], { nerveTaken: !!G.save.nerves[G.level] });
   G.time = 0;
   fx.clear();
   controls.release();
@@ -155,7 +207,8 @@ function finishLevel() {
   save(s);
   loop.stop();
 
-  const isLast = G.level === LEVELS.length - 1;
+  if (LEVELS[G.level].bonus) { showClear(); return; }
+  const isLast = G.level === MAIN_LEVELS - 1;
   const chapterEnds = !isLast && LEVELS[G.level + 1].chapter !== LEVELS[G.level].chapter;
   if (isLast) showEnding();
   else if (chapterEnds) showChapterEnd(LEVELS[G.level].chapter);
@@ -200,7 +253,11 @@ function showTitle() {
       button('Levels', showSelect),
       button(isMuted() ? 'Sound: off' : 'Sound: on', toggleMute, 'ghost'),
     ),
-    el('p', { class: 'foot' }, s.total ? 'Deaths so far: ' + s.total : 'Arrows / WASD to move · Space to jump'),
+    el('p', { class: 'hint' },
+      'Every level hides a ', el('b', {}, '◆ nerve'),
+      ' somewhere the safe route does not go. Spend one to glimpse what the level is about to do to you.'),
+    el('p', { class: 'foot' }, s.total ? 'Deaths so far: ' + s.total + ' · nerve banked: ' + (s.nerve || 0)
+      : 'Arrows / WASD · Space to jump · E to glimpse'),
   ));
 }
 
@@ -219,21 +276,23 @@ function showSelect() {
   loop.stop();
   const s = G.save;
   const chapters = CHAPTERS.map((ch, ci) => {
+    const cn = chapterNerves(ci);
     const items = LEVELS.map((L, i) => [L, i]).filter(([L]) => L.chapter === ci).map(([L, i]) => {
-      const locked = i > (s.unlocked || 1) - 1;
+      const locked = L.bonus ? !bonusUnlocked(ci) : i > (s.unlocked || 1) - 1;
       return el('button', {
-        class: 'lvl' + (locked ? ' locked' : '') + (s.cleared[i] ? ' done' : ''),
+        class: 'lvl' + (locked ? ' locked' : '') + (s.cleared[i] ? ' done' : '') + (L.bonus ? ' bonus' : ''),
         type: 'button',
         disabled: locked ? '' : null,
         onclick: () => { if (!locked) { unlock(); sfx.click(); startLevel(i); } },
       },
-        el('span', { class: 'n' }, String(i + 1)),
-        el('span', { class: 'nm' }, locked ? '???' : L.name),
+        el('span', { class: 'n' }, L.bonus ? '◆' : String(i + 1)),
+        el('span', { class: 'nm' }, locked ? (L.bonus ? 'Locked — ' + cn.got + '/' + cn.total + ' ◆' : '???') : L.name),
+        el('span', { class: 'nv' }, !locked && s.nerves[i] ? '◆' : ''),
         el('span', { class: 'dd' }, locked ? '' : (s.best[i] != null ? fmt(s.best[i]) : '')),
       );
     });
     return el('section', { class: 'chapter' },
-      el('h3', {}, ch.name, el('em', {}, ch.tag)),
+      el('h3', {}, ch.name, el('em', {}, cn.got + '/' + cn.total + ' ◆')),
       el('div', { class: 'grid' }, items),
     );
   });
@@ -251,18 +310,30 @@ function showSelect() {
 function showClear() {
   setScreen('clear');
   const s = G.save;
+  const L = LEVELS[G.level];
   const d = s.deaths[G.level] || 0;
+  const gotNerve = !!s.nerves[G.level];
+  const ci = L.chapter;
+  const cn = chapterNerves(ci);
+  const justOpened = !L.bonus && bonusUnlocked(ci) && !s.bonusSeen?.[ci];
+  if (justOpened) { s.bonusSeen = s.bonusSeen || {}; s.bonusSeen[ci] = true; save(s); sfx.chapter(); }
+
   showOverlay(card('clear',
     el('h2', {}, 'Door reached'),
-    el('p', { class: 'sub' }, LEVELS[G.level].name),
+    el('p', { class: 'sub' }, L.name),
     el('div', { class: 'stats' },
       el('div', {}, el('b', {}, fmt(G.time)), el('span', {}, 'time')),
       el('div', {}, el('b', {}, String(d)), el('span', {}, d === 1 ? 'death' : 'deaths')),
     ),
+    L.nerve ? el('p', { class: 'hint' },
+      gotNerve ? el('b', {}, '◆ Nerve taken') : 'You left the nerve behind.',
+      ' — ' + CHAPTERS[ci].name + ' ' + cn.got + '/' + cn.total)
+      : null,
+    justOpened ? el('p', { class: 'hint' }, el('b', {}, '◆ Bonus level unlocked'), ' — find it in Levels.') : null,
     el('div', { class: 'stack' },
-      button('Next level', () => startLevel(G.level + 1), 'primary'),
-      button('Replay', () => startLevel(G.level), 'ghost'),
-      button('Levels', showSelect, 'ghost'),
+      L.bonus ? null : button('Next level', () => startLevel(G.level + 1), 'primary'),
+      button(L.bonus ? 'Levels' : 'Replay', () => (L.bonus ? showSelect() : startLevel(G.level)), L.bonus ? 'primary' : 'ghost'),
+      L.bonus ? null : button('Levels', showSelect, 'ghost'),
     ),
   ));
 }
@@ -293,8 +364,9 @@ function showEnding() {
     el('p', { class: 'sub' }, 'Every door was real. Eventually.'),
     el('div', { class: 'stats' },
       el('div', {}, el('b', {}, String(s.total || 0)), el('span', {}, 'total deaths')),
-      el('div', {}, el('b', {}, String(LEVELS.length)), el('span', {}, 'levels')),
+      el('div', {}, el('b', {}, String(Object.keys(s.nerves || {}).length) + '/' + MAIN_LEVELS), el('span', {}, 'nerve')),
     ),
+    el('p', { class: 'hint' }, 'Every nerve you left behind is still down there. Collect a whole chapter to open its bonus level.'),
     el('div', { class: 'stack' },
       button('Level select', showSelect, 'primary'),
       button('Title', showTitle, 'ghost'),
@@ -320,10 +392,14 @@ function showPause() {
 // ---------------------------------------------------------------- hud
 function updateHud() {
   const s = G.save;
-  $('#hud-lvl').textContent = String(G.level + 1);
-  $('#hud-name').textContent = LEVELS[G.level].name;
+  const L = LEVELS[G.level];
+  $('#hud-lvl').textContent = L.bonus ? '◆' : String(G.level + 1);
+  $('#hud-name').textContent = L.name;
   $('#hud-deaths').textContent = '×' + (s.deaths[G.level] || 0);
   $('#hud-time').textContent = G.time.toFixed(1);
+  const n = s.nerve || 0;
+  $('#glimpse-n').textContent = String(n);
+  $('#btn-glimpse').classList.toggle('spent', n <= 0);
 }
 
 // ---------------------------------------------------------------- boot
@@ -338,6 +414,7 @@ document.addEventListener('visibilitychange', () => {
 
 $('#btn-back').addEventListener('click', () => { unlock(); sfx.click(); G.screen === 'play' ? showPause() : showTitle(); });
 $('#btn-mute').addEventListener('click', () => { unlock(); toggleMute(); });
+$('#btn-glimpse').addEventListener('click', () => { unlock(); tryGlimpse(); });
 window.addEventListener('pointerdown', unlock, { once: true });
 window.addEventListener('keydown', unlock, { once: true });
 

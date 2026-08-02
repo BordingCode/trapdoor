@@ -28,9 +28,12 @@ export function overlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
 }
 
+export const GLIMPSE_TIME = 1.5;
+
 export class World {
-  constructor(level) {
+  constructor(level, opts = {}) {
     this.level = level;
+    this.nerveTaken = !!opts.nerveTaken;  // already collected in a past session
     this.reset(true);
   }
 
@@ -59,6 +62,12 @@ export class World {
       vx: 0, vy: 0, grounded: false, coyote: 0, buffer: 0, face: 1,
       wasGrounded: false, squash: 0, anim: 0,
     };
+    // the nerve: one per level, always somewhere the safe route doesn't go
+    this.nerve = L.nerve && !this.nerveTaken
+      ? { x: L.nerve[0] * TILE + TILE / 2 - 7, y: L.nerve[1] * TILE + TILE / 2 - 7, w: 14, h: 14, got: false }
+      : null;
+    this.glimpse = 0;      // seconds of x-ray vision left
+
     this.movers = [];      // solid rects that move (crushers, sliding walls, falling blocks, platforms)
     this.spikes = [];      // emerging spike banks
     this.darts = [];
@@ -128,10 +137,13 @@ export class World {
     }
     this.runPending(dt);
 
+    if (this.glimpse > 0) this.glimpse = Math.max(0, this.glimpse - dt);
+
     if (this.state === 'play') {
       this.stepPlayer(dt, input);
       this.stepTraps(dt);
       this.checkTriggers();
+      this.checkNerve();
       this.checkHazards();
       this.checkDoor(dt);
     } else {
@@ -376,6 +388,89 @@ export class World {
       this.stateT = 0;
       this.emit('win');
     }
+  }
+
+  checkNerve() {
+    const n = this.nerve;
+    if (!n || n.got) return;
+    if (overlap(this.player, n)) {
+      n.got = true;
+      this.nerveTaken = true;   // survives the retries it will certainly cost you
+      this.emit('nerve', n.x + n.w / 2, n.y + n.h / 2);
+    }
+  }
+
+  // Spend a nerve to see what the level is about to do. Returns false if it can't
+  // be used (already looking, or the level is over).
+  useGlimpse() {
+    if (this.state !== 'play' || this.glimpse > 0) return false;
+    this.glimpse = GLIMPSE_TIME;
+    this.emit('glimpse');
+    return true;
+  }
+
+  // Everything the level is still holding back, as drawable shapes. This only exists
+  // because the traps are DATA — it reads the un-fired triggers and describes them.
+  // A `liar` level corrupts the answer: it invents threats and hides a real one.
+  truth() {
+    const out = [];
+    const lie = !!this.level.liar;
+    const push = (kind, x, y, w, h, extra) => out.push({ kind, x, y, w, h, ...extra });
+
+    // static lies baked into the tiles
+    for (let ty = 0; ty < ROWS; ty++) for (let tx = 0; tx < COLS; tx++) {
+      const c = this.grid[ty][tx];
+      if (c === '=') push('phantom', tx * TILE, ty * TILE, TILE, TILE);
+      else if (c === 'o') push('brittle', tx * TILE, ty * TILE, TILE, TILE);
+    }
+
+    const trigs = this.level.triggers || [];
+    for (let i = 0; i < trigs.length; i++) {
+      const tr = trigs[i];
+      if (tr.every == null && tr.once !== false && this.fired.has('T' + i)) continue;
+      for (const a of tr.do || []) {
+        const w = (a.w || 1) * TILE, h = (a.h || 1) * TILE;
+        switch (a.t) {
+          case 'set':
+            push(a.c === '.' ? 'vanish' : 'appear', a.x * TILE, a.y * TILE, w, h);
+            break;
+          case 'spikes':
+            push('spikes', a.x * TILE, a.y * TILE, w, h, { from: a.from || 'up' });
+            break;
+          case 'crush':
+            push('crush', a.x * TILE, a.y * TILE, w, h, { vx: a.vx || 0, vy: a.vy || 0 });
+            break;
+          case 'drop':
+            push('crush', a.x * TILE, a.y * TILE, w, h, { vx: 0, vy: 1 });
+            break;
+          case 'dart':
+            push('dart', a.x * TILE, a.y * TILE, TILE, TILE, { vx: a.vx || -1 });
+            break;
+          case 'door':
+            push('door', a.x * TILE + 5, (a.y - 1) * TILE + 4, TILE - 10, TILE * 2 - 4);
+            break;
+          case 'grav': push('grav', 0, 0, 0, 0, { v: a.v }); break;
+          case 'acid': push('acid', 0, a.y * TILE, WORLD_W, 4); break;
+          case 'ice': push('ice', 0, 0, 0, 0); break;
+          case 'dark': push('dark', 0, 0, 0, 0); break;
+          default: break;
+        }
+      }
+    }
+
+    if (lie) {
+      // keeps one genuine threat to itself…
+      const DANGER = ['vanish', 'spikes', 'crush', 'dart'];
+      const hide = out.findIndex((g) => DANGER.includes(g.kind));
+      if (hide >= 0) out.splice(hide, 1);
+      // …and invents a few that were never coming
+      const seed = Math.floor(this.time * 0.7);
+      for (let k = 0; k < 3; k++) {
+        const tx = 3 + ((seed * 7 + k * 5) % 17);
+        push(k % 2 ? 'vanish' : 'spikes', tx * TILE, (k % 2 ? 11 : 10) * TILE, 2 * TILE, TILE, { from: 'up' });
+      }
+    }
+    return out;
   }
 
   kill(cause) {

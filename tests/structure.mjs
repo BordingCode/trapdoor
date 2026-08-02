@@ -2,7 +2,7 @@
 // typos that turn a level into a soft-lock: a 23-character row, a missing door, a
 // trigger action with a name the world doesn't understand.
 import { World, PHYS } from '../js/game/world.js';
-import { LEVELS, CHAPTERS } from '../js/game/levels.js';
+import { LEVELS, CHAPTERS, MAIN_LEVELS } from '../js/game/levels.js';
 import { COLS, ROWS, TILE } from '../js/engine/canvas.js';
 
 const ACTIONS = new Set(['set', 'spikes', 'crush', 'drop', 'dart', 'door', 'fakedoor', 'grav', 'ice', 'dark', 'acid', 'push', 'shake', 'say', 'sfx']);
@@ -33,6 +33,72 @@ LEVELS.forEach((L, i) => {
   const w = new World(L);
   if (!w.door) bad(`${tag}: no door after parsing`);
   if (w.solidsOverlapping(w.player).length) bad(`${tag}: spawn is inside a wall`);
+
+  // a nerve sealed inside a wall, or sitting on a hazard, can never be taken
+  if (L.bonus) {
+    if (L.nerve) bad(`${tag}: bonus levels are the reward, they shouldn't carry a nerve`);
+  } else {
+    if (!L.nerve) bad(`${tag}: no nerve — every main level must hide one`);
+    else {
+      const [nx, ny] = L.nerve;
+      if (nx < 0 || nx >= COLS || ny < 0 || ny >= ROWS) bad(`${tag}: nerve is outside the level`);
+      else {
+        if (w.isSolidTile(nx, ny)) bad(`${tag}: nerve at ${nx},${ny} is buried in a wall`);
+        if ('^v~'.includes(w.tileAt(nx, ny))) bad(`${tag}: nerve at ${nx},${ny} sits inside a hazard`);
+        if (w.nerve && w.hazardRects().some((h) => h.x < w.nerve.x + w.nerve.w && h.x + h.w > w.nerve.x && h.y < w.nerve.y + w.nerve.h && h.y + h.h > w.nerve.y)) {
+          bad(`${tag}: nerve at ${nx},${ny} overlaps a starting hazard`);
+        }
+      }
+    }
+  }
+
+  // the glimpse must never throw, whatever state the level is in
+  try { w.truth(); } catch (e) { bad(`${tag}: truth() threw — ${e.message}`); }
+});
+
+// bonus levels: one per chapter, all after the main run
+if (MAIN_LEVELS !== 24) bad(`expected 24 main levels before the bonus block, got ${MAIN_LEVELS}`);
+CHAPTERS.forEach((ch, ci) => {
+  const n = LEVELS.filter((L) => L.bonus && L.chapter === ci).length;
+  if (n !== 1) bad(`chapter ${ci + 1} (${ch.name}) has ${n} bonus levels, expected 1`);
+});
+if (LEVELS.slice(0, MAIN_LEVELS).some((L) => L.bonus)) bad('a bonus level is mixed into the main run — level indices in saves would shift');
+
+// A nerve you can reach: it must be within one jump of somewhere you can stand.
+// "Somewhere you can stand" includes surfaces the level BUILDS for you — platforms
+// raised by a trigger, the top of a crusher or a falling block, and the world ceiling
+// on levels that flip gravity.
+const JUMP_H = 96, JUMP_W = 128;
+LEVELS.forEach((L, i) => {
+  if (!L.nerve) return;
+  const w = new World(L);
+  const n = w.nerve;
+  if (!n) return;
+
+  const surfaces = [];   // [tileX, tileY] of anything solid enough to launch from
+  for (let ty = 0; ty < ROWS; ty++) for (let tx = 0; tx < COLS; tx++) {
+    if (w.isSolidTile(tx, ty)) surfaces.push([tx, ty]);
+  }
+  let flips = false;
+  for (const tr of L.triggers || []) for (const a of tr.do || []) {
+    if (a.t === 'set' && a.c !== '.') {
+      for (let y = a.y; y < a.y + (a.h || 1); y++) for (let x = a.x; x < a.x + (a.w || 1); x++) surfaces.push([x, y]);
+    } else if (a.t === 'crush' || a.t === 'drop') {
+      // both where it appears and where it comes to rest — you can ride either
+      for (const [ox, oy] of [[a.x, a.y], [a.sx ?? a.x, a.sy ?? a.y]]) {
+        for (let x = ox; x < ox + (a.w || 1); x++) surfaces.push([x, oy]);
+      }
+    } else if (a.t === 'grav' && a.v < 0) flips = true;
+  }
+  if (flips) for (let tx = 0; tx < COLS; tx++) surfaces.push([tx, -1]);   // the ceiling becomes the floor
+
+  const reachable = surfaces.some(([tx, ty]) => {
+    if (Math.abs((n.x + n.w / 2) - (tx * TILE + TILE / 2)) > JUMP_W) return false;
+    // standing on top of it, or clinging under it once gravity is inverted
+    return [ty * TILE - PHYS.playerH, (ty + 1) * TILE].some(
+      (sy) => Math.abs((n.y + n.h / 2) - (sy + PHYS.playerH / 2)) <= JUMP_H);
+  });
+  if (!reachable) bad(`${i + 1}. ${L.name}: nerve at ${L.nerve} is not within a jump of any surface`);
 });
 
 // ---- physics: the numbers levels are designed against

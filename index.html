@@ -12,7 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <link rel="stylesheet" href="css/main.css?v=1">
+  <link rel="stylesheet" href="css/main.css?v=2">
 </head>
 <body class="loading">
   <div id="app">
@@ -20,6 +20,7 @@
       <button id="btn-back" type="button" aria-label="Menu">‹</button>
       <div id="hud-title"><span id="hud-lvl">1</span><span id="hud-name">Welcome</span></div>
       <div id="hud-stats"><span id="hud-deaths">×0</span><span id="hud-time">0.0</span></div>
+      <button id="btn-glimpse" type="button" aria-label="Spend a nerve to see the truth"><span class="dia"></span><span id="glimpse-n">0</span></button>
       <button id="btn-mute" type="button" aria-label="Sound">♪</button>
     </header>
 
@@ -34,7 +35,7 @@
     <div id="overlay"></div>
   </div>
 
-  <script type="module" src="js/main.js?v=1"></script>
+  <script type="module" src="js/main.js?v=2"></script>
   <script>
     if (!('noModule' in HTMLScriptElement.prototype)) {
       document.body.innerHTML = '<p style="color:#f4f7ff;font:16px system-ui;padding:2rem">This game needs a newer browser.</p>';

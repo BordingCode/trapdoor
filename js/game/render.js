@@ -76,6 +76,20 @@ function spikeBank(ctx, r, from, teeth) {
   else ctx.fillRect(r.x + r.w - 3, r.y, 3, r.h);
 }
 
+function arrow(ctx, x, y, ang, len) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(ang);
+  ctx.setLineDash([]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(-len, 0); ctx.lineTo(len, 0);
+  ctx.moveTo(len, 0); ctx.lineTo(len - 6, -5);
+  ctx.moveTo(len, 0); ctx.lineTo(len - 6, 5);
+  ctx.stroke();
+  ctx.restore();
+}
+
 export function render(view, w, fx, t) {
   const ctx = view.ctx;
   view.clear('#0a0c12');
@@ -181,6 +195,105 @@ export function render(view, w, fx, t) {
     if (dt.vx < 0) { ctx.moveTo(dt.x, dt.y + dt.h / 2); ctx.lineTo(dt.x + dt.w, dt.y); ctx.lineTo(dt.x + dt.w, dt.y + dt.h); }
     else { ctx.moveTo(dt.x + dt.w, dt.y + dt.h / 2); ctx.lineTo(dt.x, dt.y); ctx.lineTo(dt.x, dt.y + dt.h); }
     ctx.fill();
+  }
+
+  // ---- the nerve: a small cold light in a place you shouldn't want to stand
+  if (w.nerve && !w.nerve.got) {
+    const n = w.nerve;
+    const cx = n.x + n.w / 2, cy = n.y + n.h / 2 + Math.sin(t * 2.6) * 2.5;
+    const pulse = 0.6 + Math.sin(t * 3.4) * 0.4;
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(t * 0.9);
+    ctx.shadowColor = 'rgba(110,231,255,0.85)';
+    ctx.shadowBlur = 10 + pulse * 10;
+    ctx.fillStyle = '#6ee7ff';
+    ctx.beginPath();
+    ctx.moveTo(0, -8); ctx.lineTo(7, 0); ctx.lineTo(0, 8); ctx.lineTo(-7, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#e8fbff';
+    ctx.beginPath();
+    ctx.moveTo(0, -3.5); ctx.lineTo(3, 0); ctx.lineTo(0, 3.5); ctx.lineTo(-3, 0);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // ---- the glimpse: what the level is still holding back
+  if (w.glimpse > 0) {
+    const fade = Math.min(1, w.glimpse * 3);
+    const pulse = 0.55 + Math.sin(t * 9) * 0.2;
+    ctx.save();
+    ctx.globalAlpha = fade;
+    ctx.fillStyle = 'rgba(110,231,255,0.05)';
+    ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1.6;
+    for (const g of w.truth()) {
+      const danger = g.kind !== 'phantom' && g.kind !== 'door';
+      ctx.strokeStyle = danger ? `rgba(226,88,107,${(0.55 + pulse * 0.45).toFixed(2)})` : 'rgba(110,231,255,0.85)';
+      ctx.fillStyle = danger ? 'rgba(226,88,107,0.13)' : 'rgba(110,231,255,0.13)';
+      switch (g.kind) {
+        case 'vanish':
+        case 'phantom':
+          ctx.fillRect(g.x, g.y, g.w, g.h);
+          ctx.strokeRect(g.x + 1, g.y + 1, g.w - 2, g.h - 2);
+          ctx.beginPath();
+          ctx.moveTo(g.x + 3, g.y + 3); ctx.lineTo(g.x + g.w - 3, g.y + g.h - 3);
+          ctx.moveTo(g.x + g.w - 3, g.y + 3); ctx.lineTo(g.x + 3, g.y + g.h - 3);
+          ctx.stroke();
+          break;
+        case 'brittle':
+          ctx.strokeStyle = 'rgba(242,198,92,0.75)';
+          ctx.beginPath();
+          ctx.moveTo(g.x + 5, g.y + g.h - 4); ctx.lineTo(g.x + 11, g.y + 8);
+          ctx.lineTo(g.x + 17, g.y + g.h - 9); ctx.lineTo(g.x + g.w - 4, g.y + 5);
+          ctx.stroke();
+          break;
+        case 'spikes': {
+          const n = Math.max(1, Math.round(g.w / TILE) * 2);
+          const step = g.w / n;
+          ctx.beginPath();
+          for (let i = 0; i < n; i++) {
+            const x0 = g.x + i * step;
+            if (g.from === 'down') { ctx.moveTo(x0, g.y); ctx.lineTo(x0 + step / 2, g.y + g.h); ctx.lineTo(x0 + step, g.y); }
+            else { ctx.moveTo(x0, g.y + g.h); ctx.lineTo(x0 + step / 2, g.y); ctx.lineTo(x0 + step, g.y + g.h); }
+          }
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          break;
+        }
+        case 'crush':
+          ctx.fillRect(g.x, g.y, g.w, g.h);
+          ctx.strokeRect(g.x + 1, g.y + 1, g.w - 2, g.h - 2);
+          arrow(ctx, g.x + g.w / 2, g.y + g.h / 2, Math.atan2(g.vy, g.vx), 13);
+          break;
+        case 'dart':
+          arrow(ctx, g.x + g.w / 2, g.y + g.h / 2, g.vx < 0 ? Math.PI : 0, 13);
+          break;
+        case 'door':
+          ctx.setLineDash([4, 3]);
+          ctx.strokeStyle = 'rgba(242,198,92,0.85)';
+          ctx.strokeRect(g.x, g.y, g.w, g.h);
+          break;
+        case 'acid':
+          ctx.strokeStyle = 'rgba(95,217,122,0.9)';
+          ctx.beginPath();
+          ctx.moveTo(0, g.y); ctx.lineTo(WORLD_W, g.y);
+          ctx.stroke();
+          break;
+        case 'grav':
+          arrow(ctx, WORLD_W - 22, WORLD_H / 2, g.v < 0 ? -Math.PI / 2 : Math.PI / 2, 18);
+          break;
+        default:
+          break;
+      }
+      ctx.setLineDash([5, 4]);
+    }
+    ctx.restore();
   }
 
   // ---- player

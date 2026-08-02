@@ -1,7 +1,12 @@
 // Versioned localStorage. Corrupt or missing data falls back to a fresh save.
 const KEY = 'trapdoor_save_v1';
 
-const fresh = () => ({ unlocked: 1, cleared: [], deaths: {}, best: {}, total: 0, muted: false, seen: false });
+const fresh = () => ({
+  unlocked: 1, cleared: [], deaths: {}, best: {}, total: 0, muted: false, seen: false,
+  nerves: {},      // levelIndex -> true, once its nerve has been taken
+  nerve: 0,        // unspent nerve, the currency for a glimpse
+  bonusSeen: {},   // chapter -> true, so "bonus unlocked" only crows once
+});
 
 export function load() {
   try {
@@ -17,6 +22,9 @@ export function load() {
       total: Number.isFinite(s.total) ? s.total : 0,
       muted: !!s.muted,
       seen: !!s.seen,
+      nerves: s.nerves && typeof s.nerves === 'object' ? s.nerves : f.nerves,
+      nerve: Number.isFinite(s.nerve) ? s.nerve : f.nerve,
+      bonusSeen: s.bonusSeen && typeof s.bonusSeen === 'object' ? s.bonusSeen : f.bonusSeen,
     };
   } catch { return fresh(); }
 }

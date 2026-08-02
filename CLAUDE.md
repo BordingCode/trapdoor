@@ -12,6 +12,28 @@ route is a bug — `tests/solve.mjs` exists to catch exactly that.
 
 Infinite retries, instant respawn, no lives. The stakes are pride and the death counter.
 
+## Nerve and the glimpse (the game's one real decision)
+Walking to the door is reaction. The **nerve** is the choice.
+
+- Each main level hides one **nerve** (`nerve: [tx, ty]` in the level data), always placed
+  where the safe route does not go — over the trapdoor, at dart height, inside the
+  crusher's corridor. Taking it is a deliberate risk; it banks the instant you touch it,
+  so it survives the death it usually causes.
+- Spend one for a **glimpse**: 1.5s in which the level draws everything it is still
+  holding back. This only works because traps are data — `World.truth()` reads the
+  *un-fired* triggers and describes them as shapes.
+- You start with none. That is deliberate: a first encounter with a level must stay a
+  genuine ambush, so the economy keeps you broke early and informed later.
+- Collecting a chapter's 8 nerves opens its **bonus level** (indices 24–26, appended at
+  the end so existing level indices and saves never shift).
+- `The Whole Truth` sets `liar: true` — its glimpse hides one real trap and invents
+  fake ones. The last lie the game tells you.
+
+If you add a level, it needs a nerve; `tests/structure.mjs` fails without one, and also
+rejects a nerve buried in a wall, sitting on a hazard, or out of jump reach of any
+surface — including surfaces the level *builds* (raised platforms, crusher tops, and the
+ceiling you land on when gravity flips).
+
 ## Layout
 ```
 index.html · manifest.json · sw.js · .nojekyll
@@ -46,11 +68,14 @@ tests/all.sh          # structure + routes + solvability, ~1 min, no dependencie
 node tests/solve.mjs 7   # just level 8, for debugging one level
 ```
 `solve.mjs` runs a dumb bot through the real simulation to prove every level is
-finishable. Level 23 needs patience the bot lacks (waiting for a moving platform), so it
-has a hand-written route in `routes.mjs` instead.
+finishable, then runs each again *greedily* to prove the nerve can be taken too. Two
+levels need a deliberate line the bot won't find (waiting for a moving platform; the
+Gauntlet nerve detour), so they have hand-written routes in `routes.mjs` — keep the
+`ROUTED` / `ROUTED_NERVE` sets in `solve.mjs` in step with them.
 
 In the browser: `window.__td` exposes `start(i)`, `state()`, `hold('right', true)`,
 `world()`, `loop` (call `loop.stop()` to freeze a frame for a screenshot) and `win()`.
+`world().truth()` returns what a glimpse would show.
 
 ## Deploy
 Static GitHub Pages. **Bump `CACHE` in `sw.js` on every shippable change**, and bump the
