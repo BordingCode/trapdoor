@@ -232,12 +232,14 @@ export function render(view, w, fx, t) {
     ctx.setLineDash([5, 4]);
     ctx.lineWidth = 1.6;
     for (const g of w.truth()) {
-      const danger = g.kind !== 'phantom' && g.kind !== 'door';
+      // red = it will hurt you, cyan = it is simply not what it looks like
+      const danger = !['phantom', 'door', 'appear'].includes(g.kind);
       ctx.strokeStyle = danger ? `rgba(226,88,107,${(0.55 + pulse * 0.45).toFixed(2)})` : 'rgba(110,231,255,0.85)';
       ctx.fillStyle = danger ? 'rgba(226,88,107,0.13)' : 'rgba(110,231,255,0.13)';
       switch (g.kind) {
         case 'vanish':
         case 'phantom':
+          // an X: this ground is leaving, or was never there
           ctx.fillRect(g.x, g.y, g.w, g.h);
           ctx.strokeRect(g.x + 1, g.y + 1, g.w - 2, g.h - 2);
           ctx.beginPath();
@@ -245,6 +247,20 @@ export function render(view, w, fx, t) {
           ctx.moveTo(g.x + g.w - 3, g.y + 3); ctx.lineTo(g.x + 3, g.y + g.h - 3);
           ctx.stroke();
           break;
+        case 'appear': {
+          // a plus: something will be built here — helpful, or in your way
+          ctx.fillRect(g.x, g.y, g.w, g.h);
+          ctx.strokeRect(g.x + 1, g.y + 1, g.w - 2, g.h - 2);
+          ctx.beginPath();
+          for (let bx = g.x; bx < g.x + g.w - 4; bx += TILE) {
+            const cx = Math.min(bx + TILE / 2, g.x + g.w - TILE / 2);
+            const cy = g.y + g.h / 2;
+            ctx.moveTo(cx - 6, cy); ctx.lineTo(cx + 6, cy);
+            ctx.moveTo(cx, cy - 6); ctx.lineTo(cx, cy + 6);
+          }
+          ctx.stroke();
+          break;
+        }
         case 'brittle':
           ctx.strokeStyle = 'rgba(242,198,92,0.75)';
           ctx.beginPath();
