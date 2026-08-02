@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Trapdoor — the level is lying to you</title>
+  <meta name="description" content="A short troll platformer. Every level looks harmless. None of them are. Walk to the door — if the floor lets you.">
+  <meta name="theme-color" content="#12151d">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="stylesheet" href="css/main.css?v=1">
+</head>
+<body class="loading">
+  <div id="app">
+    <header id="hud">
+      <button id="btn-back" type="button" aria-label="Menu">‹</button>
+      <div id="hud-title"><span id="hud-lvl">1</span><span id="hud-name">Welcome</span></div>
+      <div id="hud-stats"><span id="hud-deaths">×0</span><span id="hud-time">0.0</span></div>
+      <button id="btn-mute" type="button" aria-label="Sound">♪</button>
+    </header>
+
+    <div id="stage"><canvas id="game"></canvas></div>
+
+    <div id="pads">
+      <button id="pad-left" class="pad" type="button" aria-label="Left">◀</button>
+      <button id="pad-right" class="pad" type="button" aria-label="Right">▶</button>
+      <button id="pad-jump" class="pad jump" type="button" aria-label="Jump">JUMP</button>
+    </div>
+
+    <div id="overlay"></div>
+  </div>
+
+  <script type="module" src="js/main.js?v=1"></script>
+  <script>
+    if (!('noModule' in HTMLScriptElement.prototype)) {
+      document.body.innerHTML = '<p style="color:#f4f7ff;font:16px system-ui;padding:2rem">This game needs a newer browser.</p>';
+    }
+  </script>
+  <!-- hub-stats visit counter -->
+  <script>(function(){try{var A="trapdoor",K="hubdev",d=localStorage.getItem(K);if(!d){d=(self.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now()+"."+Math.random().toString(36).slice(2));localStorage.setItem(K,d);}var u="https://hub-stats.mathiasjob.workers.dev/hit",b=JSON.stringify({app:A,d:d});if(navigator.sendBeacon){navigator.sendBeacon(u,b);}else{fetch(u,{method:"POST",body:b,keepalive:true,mode:"no-cors"});}}catch(e){}})();</script>
+</body>
+</html>
