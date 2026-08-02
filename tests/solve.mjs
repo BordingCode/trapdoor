@@ -92,22 +92,23 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false) {
     w.events.length = 0;
     t += STEP;
 
-    if (w.state === 'won') return { ok: true, t, deaths, trace, nerve: w.nerveTaken };
+    // the nerve only counts if it survived to the door with you
+    if (w.state === 'won') return { ok: true, t, deaths, trace, nerve: w.holdingNerve() };
     if (w.state === 'dead') {
       deaths++;
-      if (deaths > maxDeaths) return { ok: false, t, deaths, nerve: w.nerveTaken, why: 'died ' + deaths + 'x (last: ' + w.deathCause + ')' };
+      if (deaths > maxDeaths) return { ok: false, t, deaths, nerve: false, why: 'died ' + deaths + 'x (last: ' + w.deathCause + ')' };
       w.reset();
       jumpFrames = 0; held = false; waitFor = 0;
     }
   }
-  return { ok: false, t, deaths, nerve: w.nerveTaken, why: 'ran out of time (' + maxTime + 's)' };
+  return { ok: false, t, deaths, nerve: false, why: 'ran out of time (' + maxTime + 's)' };
 }
 
 // Levels whose solution needs patience the bot doesn't have (waiting for a moving
 // platform to come back). They're covered by hand-written routes in routes.mjs instead.
 const ROUTED = new Set([22]);
 // levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
-const ROUTED_NERVE = new Set([18]);
+const ROUTED_NERVE = new Set([14, 18]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);

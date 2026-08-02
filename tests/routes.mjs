@@ -18,10 +18,10 @@ function run(levelIndex, policy, maxTime = 30, holdFrames = 10) {
     held = jn;
     w.events.length = 0;
     t += STEP;
-    if (w.state === 'won') return { ok: true, t, deaths, nerve: w.nerveTaken };
+    if (w.state === 'won') return { ok: true, t, deaths, nerve: w.holdingNerve() };
     if (w.state === 'dead') { deaths++; w.reset(); jf = 0; held = false; }
   }
-  return { ok: false, t, deaths, nerve: w.nerveTaken };
+  return { ok: false, t, deaths, nerve: false };
 }
 
 // "Nowhere To Stand": wait at the lip, board the platform on its way back, transfer when
@@ -63,9 +63,31 @@ function gauntletPolicy(w) {
   return { dir: x < 700 ? 1 : 0, jump: false };
 }
 
+// "Rising" taking the nerve: run the wrong way along the floor to fetch it while the acid
+// comes up, then get back and climb the staircase before the ground stops existing.
+// Each jump starts well clear of the next platform's edge — jump too close and you clip
+// its underside instead of landing on it.
+const STAIRS = [[145, 288], [240, 224], [336, 160], [432, 96]];  // [jump-from x, surface top]
+function risingPolicy(w) {
+  const p = w.player;
+  const n = w.nerve;
+  if (n && !n.got) return { dir: 1, jump: false };                 // fetch it first
+  const feet = p.y + p.h;
+  let idx = STAIRS.findIndex(([, top]) => Math.abs(feet - top) < 3);
+  if (feet > 340) idx = -1;                                        // still on the ground
+  const next = STAIRS[idx + 1];
+  if (!next) return { dir: p.x < 640 ? 1 : 0, jump: false };        // top ledge: to the door
+  const from = next[0];
+  if (!p.grounded) return { dir: 1, jump: false };                  // airborne: commit forward
+  if (p.x < from - 4) return { dir: 1, jump: false };
+  if (p.x > from + 14) return { dir: -1, jump: false };
+  return { dir: 1, jump: true };
+}
+
 const cases = [
   { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
   { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
+  { i: 14, name: 'Rising (with nerve)', requireNerve: true, policy: risingPolicy },
 ];
 
 let fails = 0;

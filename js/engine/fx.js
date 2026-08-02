@@ -42,7 +42,13 @@ export class Fx {
     this.burst(x, y, n, '#5c6479', { speed: 90, size: 4, life: 0.35, g: 0.2, dir: -Math.PI / 2, spread: 2.4 });
   }
 
+  // Status callouts, not damage numbers: a new one supersedes any still hanging around
+  // nearby, so two events in quick succession never print on top of each other.
   text(x, y, str, col = '#fff', life = 1.6) {
+    for (let i = this.texts.length - 1; i >= 0; i--) {
+      const t = this.texts[i];
+      if (Math.abs(t.x - x) < 220 && Math.abs(t.y - y) < 46) this.texts.splice(i, 1);
+    }
     this.texts.push({ x, y, str, col, life, max: life });
   }
 

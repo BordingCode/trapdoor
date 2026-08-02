@@ -94,6 +94,11 @@ export const sfx = {
     tone({ freq: 784, type: 'triangle', dur: 0.2, gain: 0.16 });
     tone({ freq: 1175, type: 'sine', dur: 0.3, gain: 0.12, delay: 0.07 });
   },
+  // losing one you were carrying: the nerve sound, falling apart
+  nerveLost() {
+    tone({ freq: 1175, type: 'triangle', slide: -560, dur: 0.28, gain: 0.11 });
+    tone({ freq: 587, type: 'sine', slide: -230, dur: 0.34, gain: 0.08, delay: 0.06 });
+  },
   // spending one: a cold shimmer as the level's true face surfaces
   glimpse() {
     tone({ freq: 1568, type: 'sine', slide: -430, dur: 0.5, gain: 0.09 });

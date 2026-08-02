@@ -238,7 +238,8 @@ export const LEVELS = [
   {
     name: 'Rising',
     chapter: 1,
-    nerve: [14, 10],
+    // a detour along the floor, away from the stairs, while the acid comes up
+    nerve: [11, 10],
     grid: [
       E, E,
       '....................D...',
@@ -254,7 +255,7 @@ export const LEVELS = [
     ],
     triggers: [
       { on: 'move', do: [
-        { t: 'acid', y: 6, from: 13, speed: 22 },
+        { t: 'acid', y: 6, from: 13, speed: 16 },
         { t: 'say', text: 'Up. Quickly.', life: 2.6 },
       ] },
     ],

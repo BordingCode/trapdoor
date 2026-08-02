@@ -92,6 +92,7 @@ function drainEvents(w) {
       case 'taunt': sfx.taunt(); break;
       case 'shake': fx.quake(e.a); break;
       case 'nerve': onNerve(e.a, e.b); break;
+      case 'nervelost': onNerveLost(e.a, e.b); break;
       case 'glimpse': sfx.glimpse(); fx.quake(2, 0.15); break;
       case 'die': onDeath(w, e.a, e.b, e.c); break;
       case 'win': onWin(w); break;
@@ -121,20 +122,21 @@ function onDeath(w, x, y, cause) {
   }
 }
 
-// Picking up a nerve banks it immediately — you keep it even if the grab kills you
-// two seconds later, which it often will.
+// You are only CARRYING it now. It banks at the door — see finishLevel.
 function onNerve(x, y) {
   sfx.nerve();
   fx.burst(x, y, 18, '#6ee7ff', { speed: 190, size: 5, life: 0.8, g: 0.3 });
-  fx.text(x, y - 14, '+1 NERVE', '#6ee7ff', 1.5);
+  fx.text(x, y - 14, 'NERVE — NOW GET OUT', '#6ee7ff', 1.8);
   fx.quake(3);
   navigator.vibrate?.([12, 30, 12]);
-  const s = G.save;
-  if (!s.nerves[G.level]) {
-    s.nerves[G.level] = true;
-    s.nerve = (s.nerve || 0) + 1;
-    save(s);
-  }
+  updateHud();
+}
+
+// …and dying drops it back where it was.
+function onNerveLost(x, y) {
+  sfx.nerveLost();
+  fx.burst(x, y, 12, '#3f8ba0', { speed: 150, size: 4, life: 0.7 });
+  fx.text(x, y - 24, 'NERVE DROPPED', '#7fb2c4', 1.7);
   updateHud();
 }
 
@@ -180,7 +182,7 @@ function onWin(w) {
 // ---------------------------------------------------------------- flow
 function startLevel(i) {
   G.level = Math.max(0, Math.min(LEVELS.length - 1, i));
-  G.world = new World(LEVELS[G.level], { nerveTaken: !!G.save.nerves[G.level] });
+  G.world = new World(LEVELS[G.level], { nerveBanked: !!G.save.nerves[G.level] });
   G.time = 0;
   fx.clear();
   controls.release();
@@ -199,6 +201,12 @@ function restart() {
 
 function finishLevel() {
   const s = G.save;
+  // the door is the bank: a nerve only counts if you carried it here alive
+  if (G.world && G.world.holdingNerve() && !s.nerves[G.level]) {
+    s.nerves[G.level] = true;
+    s.nerve = (s.nerve || 0) + 1;
+    G.world.nerveBanked = true;
+  }
   s.cleared[G.level] = true;
   // `unlocked` is a count, not an index: clearing level i opens level i+1
   if (G.level + 2 > (s.unlocked || 1)) s.unlocked = Math.min(LEVELS.length, G.level + 2);
@@ -255,7 +263,8 @@ function showTitle() {
     ),
     el('p', { class: 'hint' },
       'Every level hides a ', el('b', {}, '◆ nerve'),
-      ' somewhere the safe route does not go. Spend one to glimpse what the level is about to do to you.'),
+      ' somewhere the safe route does not go — and you have to carry it to the door. ',
+      'Spend one to glimpse what the level is about to do to you.'),
     el('p', { class: 'foot' }, s.total ? 'Deaths so far: ' + s.total + ' · nerve banked: ' + (s.nerve || 0)
       : 'Arrows / WASD · Space to jump · E to glimpse'),
   ));
@@ -326,7 +335,7 @@ function showClear() {
       el('div', {}, el('b', {}, String(d)), el('span', {}, d === 1 ? 'death' : 'deaths')),
     ),
     L.nerve ? el('p', { class: 'hint' },
-      gotNerve ? el('b', {}, '◆ Nerve taken') : 'You left the nerve behind.',
+      gotNerve ? el('b', {}, '◆ Nerve banked') : 'You left the nerve behind.',
       ' — ' + CHAPTERS[ci].name + ' ' + cn.got + '/' + cn.total)
       : null,
     justOpened ? el('p', { class: 'hint' }, el('b', {}, '◆ Bonus level unlocked'), ' — find it in Levels.') : null,
@@ -399,7 +408,11 @@ function updateHud() {
   $('#hud-time').textContent = G.time.toFixed(1);
   const n = s.nerve || 0;
   $('#glimpse-n').textContent = String(n);
-  $('#btn-glimpse').classList.toggle('spent', n <= 0);
+  const holding = !!(G.world && G.world.holdingNerve());
+  $('#glimpse-hold').textContent = holding ? '+1' : '';
+  const b = $('#btn-glimpse');
+  b.classList.toggle('spent', n <= 0);
+  b.classList.toggle('holding', holding);
 }
 
 // ---------------------------------------------------------------- boot

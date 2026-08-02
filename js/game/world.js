@@ -33,7 +33,7 @@ export const GLIMPSE_TIME = 1.5;
 export class World {
   constructor(level, opts = {}) {
     this.level = level;
-    this.nerveTaken = !!opts.nerveTaken;  // already collected in a past session
+    this.nerveBanked = !!opts.nerveBanked;  // already carried to the door, some past run
     this.reset(true);
   }
 
@@ -62,8 +62,10 @@ export class World {
       vx: 0, vy: 0, grounded: false, coyote: 0, buffer: 0, face: 1,
       wasGrounded: false, squash: 0, anim: 0,
     };
-    // the nerve: one per level, always somewhere the safe route doesn't go
-    this.nerve = L.nerve && !this.nerveTaken
+    // The nerve: one per level, always somewhere the safe route doesn't go. Picking it up
+    // is not enough — you have to carry it to the door. Every reset puts it back, so
+    // dying with it in hand costs you the nerve as well as the time.
+    this.nerve = L.nerve && !this.nerveBanked
       ? { x: L.nerve[0] * TILE + TILE / 2 - 7, y: L.nerve[1] * TILE + TILE / 2 - 7, w: 14, h: 14, got: false }
       : null;
     this.glimpse = 0;      // seconds of x-ray vision left
@@ -390,12 +392,14 @@ export class World {
     }
   }
 
+  // true while you are carrying a nerve you have not yet banked at the door
+  holdingNerve() { return !!(this.nerve && this.nerve.got); }
+
   checkNerve() {
     const n = this.nerve;
     if (!n || n.got) return;
     if (overlap(this.player, n)) {
       n.got = true;
-      this.nerveTaken = true;   // survives the retries it will certainly cost you
       this.emit('nerve', n.x + n.w / 2, n.y + n.h / 2);
     }
   }
@@ -479,6 +483,7 @@ export class World {
     this.stateT = 0;
     this.deaths++;
     this.deathCause = cause;
+    if (this.holdingNerve()) this.emit('nervelost', this.player.x + this.player.w / 2, this.player.y + this.player.h / 2);
     this.emit('die', this.player.x + this.player.w / 2, this.player.y + this.player.h / 2, cause);
   }
 

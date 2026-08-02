@@ -12,9 +12,11 @@ home screen.
 
 **Nerve.** Every level hides one, always somewhere the safe route doesn't go — floating
 over the trapdoor, at dart height, inside the corridor the crusher is about to fill.
-Taking it is a choice to be in danger on purpose. Spend one for a *glimpse*: a second and
-a half in which the level shows you everything it was about to do. Collect a whole
-chapter's worth and it opens a level that shouldn't exist.
+Picking it up isn't the hard part: **you have to carry it to the door.** Die anywhere
+after the grab and it goes straight back where it was.
+
+Spend one for a *glimpse*: a second and a half in which the level shows you everything it
+was about to do. Collect a whole chapter's worth and it opens a level that shouldn't exist.
 
 One of those levels lies to your glimpse.
 

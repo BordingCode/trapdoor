@@ -17,8 +17,12 @@ Walking to the door is reaction. The **nerve** is the choice.
 
 - Each main level hides one **nerve** (`nerve: [tx, ty]` in the level data), always placed
   where the safe route does not go — over the trapdoor, at dart height, inside the
-  crusher's corridor. Taking it is a deliberate risk; it banks the instant you touch it,
-  so it survives the death it usually causes.
+  crusher's corridor.
+- **The door is the bank.** Picking a nerve up only means you're *carrying* it; die and it
+  goes back where it was. So the grab isn't the challenge — surviving the rest of the level
+  afterwards is. `World.holdingNerve()` is the carried state; `nerveBanked` (passed in from
+  the save) is the permanent one, and `reset()` respawns the nerve whenever it isn't banked.
+  `finishLevel()` in main.js is the only place that commits it.
 - Spend one for a **glimpse**: 1.5s in which the level draws everything it is still
   holding back. This only works because traps are data — `World.truth()` reads the
   *un-fired* triggers and describes them as shapes.
@@ -68,10 +72,15 @@ tests/all.sh          # structure + routes + solvability, ~1 min, no dependencie
 node tests/solve.mjs 7   # just level 8, for debugging one level
 ```
 `solve.mjs` runs a dumb bot through the real simulation to prove every level is
-finishable, then runs each again *greedily* to prove the nerve can be taken too. Two
-levels need a deliberate line the bot won't find (waiting for a moving platform; the
-Gauntlet nerve detour), so they have hand-written routes in `routes.mjs` — keep the
+finishable, then runs each again *greedily* to prove the nerve can be taken **and carried
+to the door alive** — that's the bar, so a nerve you can only reach by dying is a failure.
+Three levels need a deliberate line the bot won't find (moving platforms; the Gauntlet and
+Rising nerve detours), so they have hand-written routes in `routes.mjs` — keep the
 `ROUTED` / `ROUTED_NERVE` sets in `solve.mjs` in step with them.
+
+Watch out when placing a nerve on a timed level: it has to be affordable *round trip*.
+Rising's spot was only reachable if dying still banked it, so it moved (and its acid eased
+from 22 to 16px/s) when the carry rule landed.
 
 In the browser: `window.__td` exposes `start(i)`, `state()`, `hold('right', true)`,
 `world()`, `loop` (call `loop.stop()` to freeze a frame for a screenshot) and `win()`.
