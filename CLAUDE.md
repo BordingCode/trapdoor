@@ -47,7 +47,7 @@ js/
   audio.js             procedural Web Audio SFX (no files)
   engine/  loop.js canvas.js input.js fx.js
   game/    world.js render.js levels.js save.js
-tests/   structure.mjs routes.mjs solve.mjs all.sh
+tests/   structure.mjs rules.mjs routes.mjs solve.mjs all.sh
 tools/   make_icons.py
 ```
 
@@ -61,6 +61,14 @@ tools/   make_icons.py
 World is a fixed 24x13 tiles of 32px (768x416) — one screen per level, always fully
 visible (`contain` fit, never cropped: a cropped trap would be unfair).
 
+## A door in flight cannot be entered
+`checkDoor()` bails out while `door.tox != null`. Without that you win by standing in the
+path of a fleeing door and letting it hit you — and whether it connects depends on how far
+the door travels per frame, so short hops were exploitable and long ones tunnelled past.
+`tests/rules.mjs` guards this both in isolation and end-to-end (standing still must beat no
+level that has a moving door). Note that *Sharp Enough* was only ever "solved" by that
+exploit, which hid how hard its real route was — fixing the rule is what exposed it.
+
 ## Physics numbers the levels are designed against
 Run 168px/s · jump 520 → ~93px high (2.9 tiles) and ~120px across · gravity 1450 ·
 coyote 0.10s · jump buffer 0.13s. `tests/structure.mjs` asserts these, because level
@@ -68,7 +76,7 @@ geometry silently depends on them — changing `PHYS` can make hand-built jumps 
 
 ## Testing
 ```
-tests/all.sh          # structure + routes + solvability, ~1 min, no dependencies
+tests/all.sh          # structure + rules + routes + solvability, ~2 min, no dependencies
 node tests/solve.mjs 7   # just level 8, for debugging one level
 ```
 `solve.mjs` runs a dumb bot through the real simulation to prove every level is

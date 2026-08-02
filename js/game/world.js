@@ -382,6 +382,13 @@ export class World {
   checkDoor(dt) {
     const d = this.door;
     const p = this.player;
+    // A door in flight cannot be entered. Without this you can win by standing in the
+    // path of a fleeing door and letting it hit you — and whether that happens depends
+    // on how far it travels per frame, so it was a frame-timing lottery too.
+    if (d.tox != null) {
+      d.open += (0 - d.open) * Math.min(1, dt * 8);
+      return;
+    }
     const near = overlap(p, { x: d.x - 8, y: d.y, w: d.w + 16, h: d.h });
     d.open += ((near && !d.fake ? 1 : 0) - d.open) * Math.min(1, dt * 8);
     if (d.fake) return;

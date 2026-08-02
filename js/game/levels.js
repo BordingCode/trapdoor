@@ -457,15 +457,19 @@ export const LEVELS = [
     bonus: true,
     grid: [
       E, E, E, E, E, E, E, E, E, E,
-      '..S.......^^.........D..',
+      // single-tile spike banks: clearing a 2-tile bank on ice needs a launch window
+      // ~0.24s wide, which stacks badly with dodging darts on a 1.35s cycle
+      '..S........^.........D..',
       F, F,
     ],
     triggers: [
       { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice, and company.', life: 2.6 }] },
       { on: 'pastx', x: 4, every: 1.35, do: [{ t: 'dart', x: 23, y: 10, vx: -285 }] },
+      // the door retreats past ONE fresh spike bank, not all the way back over the
+      // level's own spikes — a return trip on ice with darts is enough of an ask
       { on: 'door', d: 2.4, do: [
-        { t: 'door', x: 6, y: 10 },
-        { t: 'spikes', x: 15, y: 10, w: 2, h: 1, from: 'up', d: 0.25 },
+        { t: 'door', x: 12, y: 10 },
+        { t: 'spikes', x: 16, y: 10, w: 1, h: 1, from: 'up', d: 0.25 },
         { t: 'say', text: 'Slide back, then.', life: 2.6 },
       ] },
     ],

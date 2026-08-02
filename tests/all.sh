@@ -3,5 +3,6 @@
 set -e
 cd "$(dirname "$0")/.."
 echo "== structure =="; node tests/structure.mjs
+echo "== rules =="; node tests/rules.mjs
 echo "== routes =="; node tests/routes.mjs
 echo "== solvability =="; node tests/solve.mjs
