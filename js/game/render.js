@@ -121,6 +121,19 @@ export function render(view, w, fx, t) {
         ctx.strokeStyle = 'rgba(0,0,0,0.18)';
         ctx.lineWidth = 1;
         ctx.strokeRect(x + 0.5 + ox, y + 0.5 + oy, TILE - 1, TILE - 1);
+      } else if (c === '>' || c === '<') {
+        block(ctx, x, y, TILE, TILE, '#3a3b4e', '#5a5c78', '#24252f');
+        const dir = c === '>' ? 1 : -1;
+        const off = ((t * 60 * dir) % 16 + 16) % 16;
+        ctx.fillStyle = '#8b8fb5';
+        for (let k = -1; k < 2; k++) {
+          const cx = x + off + k * 16;
+          ctx.beginPath();
+          ctx.moveTo(cx - dir * 4, y + 10); ctx.lineTo(cx + dir * 4, y + 16); ctx.lineTo(cx - dir * 4, y + 22);
+          ctx.lineTo(cx - dir * 1, y + 16);
+          ctx.closePath();
+          ctx.fill();
+        }
       } else if (c === '^') {
         spikeBank(ctx, { x: x + 3, y: y + TILE * 0.38, w: TILE - 6, h: TILE * 0.62 }, 'up', 2);
       } else if (c === 'v') {
@@ -148,23 +161,38 @@ export function render(view, w, fx, t) {
 
   // ---- door
   const d = w.door;
-  const glow = 0.35 + d.open * 0.65 + Math.sin(t * 2) * 0.05;
+  const locked = w.doorLocked();
+  const glow = locked ? 0 : 0.35 + d.open * 0.65 + Math.sin(t * 2) * 0.05;
   ctx.save();
   ctx.globalAlpha = d.fake ? 0.35 : 1;
   ctx.shadowColor = 'rgba(242,198,92,0.55)';
   ctx.shadowBlur = 16 * glow;
-  ctx.fillStyle = C.doorDark;
+  ctx.fillStyle = locked ? '#3c3b33' : C.doorDark;
   roundRect(ctx, d.x - 3, d.y - 3, d.w + 6, d.h + 3, 5);
   ctx.fill();
   ctx.shadowBlur = 0;
-  ctx.fillStyle = C.door;
+  ctx.fillStyle = locked ? '#6d6a55' : C.door;
   roundRect(ctx, d.x, d.y, d.w, d.h, 3);
   ctx.fill();
-  // the crack of light widens as you get close
-  ctx.fillStyle = 'rgba(255,246,214,' + (0.25 + d.open * 0.6).toFixed(3) + ')';
-  ctx.fillRect(d.x + d.w / 2 - 1.5 - d.open * 3, d.y + 4, 3 + d.open * 6, d.h - 8);
-  ctx.fillStyle = C.doorDark;
-  ctx.fillRect(d.x + d.w - 8, d.y + d.h / 2 - 2, 4, 4);
+  if (locked) {
+    // a bar and a cold keyhole: this is not an exit until you are carrying one
+    ctx.fillStyle = '#2a2921';
+    ctx.fillRect(d.x - 2, d.y + d.h * 0.42, d.w + 4, 6);
+    ctx.fillStyle = '#6ee7ff';
+    ctx.beginPath();
+    ctx.moveTo(d.x + d.w / 2, d.y + d.h * 0.28 - 5);
+    ctx.lineTo(d.x + d.w / 2 + 4, d.y + d.h * 0.28);
+    ctx.lineTo(d.x + d.w / 2, d.y + d.h * 0.28 + 5);
+    ctx.lineTo(d.x + d.w / 2 - 4, d.y + d.h * 0.28);
+    ctx.closePath();
+    ctx.fill();
+  } else {
+    // the crack of light widens as you get close
+    ctx.fillStyle = 'rgba(255,246,214,' + (0.25 + d.open * 0.6).toFixed(3) + ')';
+    ctx.fillRect(d.x + d.w / 2 - 1.5 - d.open * 3, d.y + 4, 3 + d.open * 6, d.h - 8);
+    ctx.fillStyle = C.doorDark;
+    ctx.fillRect(d.x + d.w - 8, d.y + d.h / 2 - 2, 4, 4);
+  }
   ctx.restore();
 
   // ---- movers (crushers, falling blocks, platforms)

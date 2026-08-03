@@ -20,7 +20,7 @@ LEVELS.forEach((L, i) => {
   if ((flat.match(/S/g) || []).length !== 1) bad(`${tag}: needs exactly one spawn`);
   if ((flat.match(/D/g) || []).length !== 1) bad(`${tag}: needs exactly one door`);
   if (!CHAPTERS[L.chapter]) bad(`${tag}: unknown chapter ${L.chapter}`);
-  for (const c of flat) if (!'.#SD^v~o='.includes(c)) bad(`${tag}: unknown tile '${c}'`);
+  for (const c of flat) if (!'.#SD^v~o=><'.includes(c)) bad(`${tag}: unknown tile '${c}'`);
 
   (L.triggers || []).forEach((tr, ti) => {
     if (!CONDS.has(tr.on)) bad(`${tag}: trigger ${ti} has unknown condition '${tr.on}'`);

@@ -3,6 +3,7 @@
 //
 // Grid legend:
 //   .  empty        #  solid          S  spawn        D  door (this tile is its FOOT)
+//   >  belt, carries you right   <  belt, carries you left (solid, 112px/s)
 //   ^  floor spike  v  ceiling spike  ~  acid
 //   o  looks solid, crumbles 0.3s after you stand on it
 //   =  looks solid, isn't solid at all
@@ -32,7 +33,7 @@ export const LEVELS = [
     nerve: [12, 8],
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
-      { on: 'time', s: 0.5, do: [{ t: 'say', text: 'Get to the door. That is the whole game.', life: 3.4 }] },
+      { on: 'time', s: 0.5, do: [{ t: 'say', text: 'Take the ◆ nerve, then the door. That is the whole game.', life: 3.8 }] },
       { on: 'door', d: 2.2, do: [{ t: 'say', text: 'See? Nothing to worry about.', life: 2.4 }] },
     ],
   },
@@ -968,6 +969,171 @@ export const LEVELS = [
     ],
   },
 
+  // ---------------------------------------------------------------- CHAPTER 7
+  // The door has always wanted the nerve. This chapter builds levels around that: the
+  // detour IS the level, and the floor, the clock and the light are all against it.
+  {
+    name: 'Conveyor',
+    chapter: 6,
+    nerve: [19, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E,
+      '......##########........',   // a lid: inside the tunnel there is no jumping
+      SD,
+      '####<<<<<<<<<<<<<<<<####',
+      F,
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'The floor would rather you did not.', life: 3.2 }] },
+      // upstream at 56px/s, and the tunnel has a beat of its own
+      { on: 'pastx', x: 5, every: 2.2, do: [
+        { t: 'spikes', x: 9, y: 10, w: 2, h: 1, from: 'up', hold: 0.9 },
+        { t: 'spikes', x: 13, y: 10, w: 2, h: 1, from: 'up', hold: 0.9, d: 1.1 },
+      ] },
+      { on: 'pastx', x: 16, do: [{ t: 'spikes', x: 21, y: 10, w: 1, h: 1, from: 'up' }] },
+    ],
+  },
+  {
+    name: 'Deadline',
+    chapter: 6,
+    nerve: [6, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'Seven seconds. Both of them.', life: 3 }] },
+      { on: 'stand', x: 13, y: 11, w: 2, do: [
+        { t: 'set', x: 13, y: 11, w: 2, h: 2, c: '.' }, { t: 'shake', mag: 5 },
+      ] },
+      // the door stops being a door. Permanently. Die and it starts over.
+      { on: 'time', s: 7, do: [
+        { t: 'fakedoor' },
+        { t: 'say', text: 'Time. Start again.', life: 3 },
+        { t: 'shake', mag: 7 },
+      ] },
+    ],
+  },
+  {
+    name: 'Guard',
+    chapter: 6,
+    nerve: [12, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 5, do: [
+        { t: 'say', text: 'That one is guarded.', life: 2.8 },
+        // it patrols the air one tile up, so it never touches you on the floor — it only
+        // makes the JUMP dangerous, which is where the nerve is
+        { t: 'crush', x: 11, y: 9, w: 2, h: 1, vx: 150, sx: 16, bounce: true, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 15, do: [{ t: 'spikes', x: 18, y: 10, w: 2, h: 1, from: 'up' }] },
+    ],
+  },
+  {
+    name: 'Runaway',
+    chapter: 6,
+    nerve: [4, 8],   // before the belt, because it is the last jump you are allowed
+    grid: [
+      E, E, E, E, E, E, E, E, E,
+      '.........vvvvvvvvv......',   // under this, jumping is not an option
+      SD,
+      '######>>>>>>>>>>>>>>####',
+      F,
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice, and a floor in a hurry.', life: 3.2 }] },
+      // the belt runs at you at 280px/s and the brakes are made of ice
+      { on: 'pastx', x: 8, every: 2.4, do: [
+        { t: 'spikes', x: 17, y: 10, w: 1, h: 1, from: 'up', hold: 0.6 },
+      ] },
+    ],
+  },
+  {
+    name: 'Cold Storage',
+    chapter: 6,
+    nerve: [18, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      SD,
+      '####>>>>>>>><<<<<<<<####',
+      F,
+    ],
+    triggers: [
+      { on: 'pastx', x: 4, do: [
+        { t: 'dark', v: 0.9 },
+        { t: 'say', text: 'You will feel which way the floor goes.', life: 3.4 },
+      ] },
+      { on: 'pastx', x: 6, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 132, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 8, every: 2.2, do: [
+        { t: 'spikes', x: 13, y: 10, w: 4, h: 1, from: 'up', hold: 0.8 },
+      ] },
+    ],
+  },
+  {
+    name: 'Overtime',
+    chapter: 6,
+    nerve: [12, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 3, do: [
+        { t: 'say', text: 'Ten seconds, and it stamps.', life: 3 },
+        { t: 'crush', x: 10, y: -4, w: 4, h: 4, vy: 290, sy: 8, bounce: true },
+        { t: 'crush', x: 17, y: -4, w: 4, h: 4, vy: 290, sy: 8, bounce: true, wait: 1.2 },
+      ] },
+      { on: 'time', s: 10, do: [
+        { t: 'fakedoor' },
+        { t: 'say', text: 'Closed.', life: 2.6 },
+        { t: 'shake', mag: 7 },
+      ] },
+    ],
+  },
+  {
+    name: 'Ferry',
+    chapter: 6,
+    nerve: [12, 6],
+    grid: [
+      E, E, E, E, E, E, E, E, E,
+      '......<<<<<<<<<<<.......',   // the only way across, and it runs the wrong way
+      SD,
+      '#####~~~~~~~~~~~~~~#####',
+      '#####~~~~~~~~~~~~~~#####',
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'Mind the gap. And the ferry.', life: 3.2 }] },
+      // at head height for anyone standing on the belt; the nerve is one jump above them
+      { on: 'pastx', x: 6, every: 1.6, do: [{ t: 'dart', x: 23, y: 8, vx: -300 }] },
+    ],
+  },
+  {
+    name: 'The Vault',
+    chapter: 6,
+    nerve: [4, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      SD,
+      '####>>>>>>>>>>>>>>>>####',
+      F,
+    ],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'Last door. It wants everything.', life: 3.2 }] },
+      { on: 'pastx', x: 6, do: [
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, chase: 104, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 8, every: 3.4, do: [
+        { t: 'flip', v: 1 }, { t: 'shake', mag: 4 },
+        { t: 'flip', v: 0, d: 0.85 },
+      ] },
+      { on: 'pastx', x: 10, every: 2.2, do: [
+        { t: 'spikes', x: 14, y: 10, w: 3, h: 1, from: 'up', hold: 0.8 },
+      ] },
+      { on: 'door', d: 2.2, do: [
+        { t: 'set', x: 16, y: 9, w: 5, h: 1, c: '#' },
+        { t: 'door', x: 18, y: 8 },
+        { t: 'say', text: 'Up. Obviously.', life: 2.6 },
+      ] },
+      { on: 'door', d: 1.8, needs: 4, do: [{ t: 'say', text: 'Go on. It is open.', life: 3 }] },
+    ],
+  },
+
   // ------------------------------------------------------- BONUS (nerve-locked)
   // One per chapter, opened by collecting all 8 nerves in that chapter. These are
   // allowed to be mean — you only get here by volunteering for danger eight times.
@@ -1061,6 +1227,30 @@ export const LEVELS = [
     ],
   },
   {
+    name: 'Overdue',
+    chapter: 6,
+    bonus: true,
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      SD,
+      '####<<<<<<<<>>>>>>>>####',
+      F,
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'You came back for this. Twelve seconds.', life: 3.4 }] },
+      { on: 'pastx', x: 4, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 128, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 4, every: 2.0, do: [
+        { t: 'spikes', x: 10, y: 10, w: 2, h: 1, from: 'up', hold: 0.8 },
+        { t: 'spikes', x: 16, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 1.0 },
+      ] },
+      { on: 'time', s: 12, do: [
+        { t: 'fakedoor' }, { t: 'say', text: 'Overdue.', life: 2.6 }, { t: 'shake', mag: 7 },
+      ] },
+    ],
+  },
+  {
     name: 'Nothing Left',
     chapter: 5,
     bonus: true,
@@ -1068,7 +1258,7 @@ export const LEVELS = [
     triggers: [
       { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'No floor tricks left. Just this.', life: 3.2 }] },
       { on: 'pastx', x: 3, do: [
-        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 138, kill: true, solid: false, quake: false },
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 124, kill: true, solid: false, quake: false },
       ] },
       { on: 'pastx', x: 3, every: 2.6, do: [
         { t: 'fakedoor' },
@@ -1119,6 +1309,7 @@ export const CHAPTERS = [
   { name: 'Bad Faith', tag: 'It learns from your deaths.' },
   { name: 'The Grudge', tag: 'It has stopped pretending.' },
   { name: 'Contempt', tag: 'Now it comes for the controls.' },
+  { name: 'The Toll', tag: 'The door was never free.' },
 ];
 
 // Shown after a few deaths on the same level — the level gloating, not a hint.

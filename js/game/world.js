@@ -21,8 +21,9 @@ export const PHYS = {
   playerH: 26,
 };
 
-const SOLID = new Set(['#', 'o']);          // 'o' crumbles, but is solid until it does
-const LOOKS_SOLID = new Set(['#', 'o', '=']); // '=' is the lie: drawn solid, isn't
+const SOLID = new Set(['#', 'o', '>', '<']);   // 'o' crumbles, but is solid until it does
+const LOOKS_SOLID = new Set(['#', 'o', '=', '>', '<']); // '=' is the lie: drawn solid, isn't
+export const BELT_SPEED = 112;   // two thirds of a run: upstream is possible, just slow
 
 export function overlap(a, b) {
   return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
@@ -90,6 +91,7 @@ export class World {
     this.events = [];      // drained by the presentation layer for sound / fx
     this.says = [];        // taunt bubbles: { text, life }
     this.deathCause = '';
+    this.lockedSaid = false;
     if (first) { this.deaths = 0; this.best = null; }
     this.startedMoving = false;
   }
@@ -207,6 +209,16 @@ export class World {
     const landed = this.resolveAxis(p, 'y');
     if (landed && !p.wasGrounded) { p.squash = 0.3; this.emit('land'); }
 
+    // a belt underfoot carries you whether you like it or not
+    if (p.grounded && this.gravDir > 0) {
+      const fy = Math.floor((p.y + p.h + 2) / TILE);
+      const x0 = Math.floor((p.x + 2) / TILE), x1 = Math.floor((p.x + p.w - 2) / TILE);
+      for (let tx = x0; tx <= x1; tx++) {
+        const c = this.tileAt(tx, fy);
+        if (c === '>') { p.rideVx = (p.rideVx || 0) + BELT_SPEED; break; }
+        if (c === '<') { p.rideVx = (p.rideVx || 0) - BELT_SPEED; break; }
+      }
+    }
     // riding a horizontally moving platform
     if (p.grounded && p.rideVx) { p.x += p.rideVx * dt; this.resolveAxis(p, 'x'); }
     p.rideVx = 0;
@@ -405,6 +417,11 @@ export class World {
     }
   }
 
+  // The door wants the nerve. Not banked in some past run — in your hands, now. `nerve`
+  // is null once it has been banked (or on a level that never had one), so a level you
+  // have already paid for opens normally.
+  doorLocked() { return !!(this.nerve && !this.nerve.got); }
+
   checkDoor(dt) {
     const d = this.door;
     const p = this.player;
@@ -416,7 +433,16 @@ export class World {
       return;
     }
     const near = overlap(p, { x: d.x - 8, y: d.y, w: d.w + 16, h: d.h });
-    d.open += ((near && !d.fake ? 1 : 0) - d.open) * Math.min(1, dt * 8);
+    const locked = this.doorLocked();
+    d.open += ((near && !d.fake && !locked ? 1 : 0) - d.open) * Math.min(1, dt * 8);
+    if (locked) {
+      if (near && !this.lockedSaid) {
+        this.lockedSaid = true;
+        this.says.push({ text: 'Not without the nerve.', life: 2.2 });
+        this.emit('locked', d.x + d.w / 2, d.y + d.h / 2);
+      }
+      return;
+    }
     if (d.fake) return;
     if (overlap({ x: p.x + 4, y: p.y + 4, w: p.w - 8, h: p.h - 8 }, d)) {
       this.state = 'won';

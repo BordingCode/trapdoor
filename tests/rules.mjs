@@ -40,6 +40,7 @@ const idle = { left: false, right: false, jumpHeld: false, jumpPressed: false };
 // ---- 2. …but a door that has come to rest still counts -------------------------
 {
   const w = new World(PLAIN);
+  if (w.nerve) w.nerve.got = true;                    // the door wants that first, see rule 8
   w.act({ t: 'door', x: 14, y: 10 });
   for (let i = 0; i < 120 && w.door.tox != null; i++) { w.step(STEP, idle); w.events.length = 0; }
   if (w.door.tox != null) { bad('door landing: the door never finished its flight'); }
@@ -50,6 +51,32 @@ const idle = { left: false, right: false, jumpHeld: false, jumpPressed: false };
     if (w.state !== 'won') bad('door landing: standing in a settled door did not win');
     else ok('a door that has come to rest still opens');
   }
+}
+
+// ---- 8. the door does not open without the nerve -------------------------------
+// The rule the whole game now hangs on: reaching the door is not finishing the level.
+// Checked on every level, because a level whose door opened early would be a free pass.
+{
+  const cheated = [];
+  for (let i = 0; i < LEVELS.length; i++) {
+    const w = new World(LEVELS[i]);
+    if (!w.nerve) continue;                            // bonus levels carry none by design
+    w.player.x = w.door.x + 2;
+    w.player.y = w.door.y + 20;
+    for (let k = 0; k < 20; k++) { w.step(STEP, idle); w.events.length = 0; }
+    if (w.state === 'won') cheated.push(`${i + 1}. ${LEVELS[i].name}`);
+  }
+  if (cheated.length) bad('the door opened with no nerve on: ' + cheated.join(', '));
+  else ok('no door opens for someone who is not carrying the nerve');
+
+  // …and a level whose nerve is already banked must still be replayable
+  const L = LEVELS.find((x) => x.nerve);
+  const w = new World(L, { nerveBanked: true });
+  w.player.x = w.door.x + 2;
+  w.player.y = w.door.y + 20;
+  w.step(STEP, idle);
+  if (w.state !== 'won') bad('a level with its nerve already banked cannot be finished again');
+  else ok('a nerve you have already banked keeps the door open on a replay');
 }
 
 // ---- 3. standing still must never finish a level with a fleeing door -----------

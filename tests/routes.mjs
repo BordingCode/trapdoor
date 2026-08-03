@@ -156,6 +156,22 @@ function legsPolicy(w) {
   return { dir: Math.abs(p.x - 684) < 6 ? 0 : Math.sign(684 - p.x), jump: false };
 }
 
+// "Runaway": the belt throws you at a spike bank at 280px/s under a spiked lid, so the
+// level is braking, not jumping. The bot in solve.mjs jumps at random 2% of frames, which
+// under that lid is 2% instant deaths.
+function runawayPolicy(w) {
+  const p = w.player;
+  const n = w.nerve;
+  if (n && !n.got) {                       // the nerve first — the last legal jump
+    if (p.x > 140) return { dir: -1, jump: false };
+    if (p.x < 122) return { dir: 1, jump: false };
+    return { dir: 0, jump: true };
+  }
+  const bank = w.spikes.find((s) => s.t > 0.2 && !s.retract);
+  if (bank && p.x + p.w > bank.x - 150 && p.x < bank.x) return { dir: -1, jump: false };
+  return { dir: 1, jump: false };
+}
+
 const cases = [
   { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
   { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
@@ -163,6 +179,7 @@ const cases = [
   { i: 29, name: 'The Long Climb', requireNerve: true, policy: longClimbPolicy },
   { i: 38, name: 'Elevator', requireNerve: true, policy: elevatorPolicy },
   { i: 41, name: 'Legs (with nerve)', requireNerve: true, policy: legsPolicy },
+  { i: 51, name: 'Runaway', requireNerve: true, policy: runawayPolicy },
 ];
 
 let fails = 0;

@@ -110,25 +110,24 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false, arm = 0
   return { ok: false, t, deaths, nerve: false, why: 'ran out of time (' + maxTime + 's)' };
 }
 
-// Levels whose solution needs patience the bot doesn't have (waiting for a moving
-// platform to come back). They're covered by hand-written routes in routes.mjs instead.
-const ROUTED = new Set([22, 29, 38]);
-// levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
-const ROUTED_NERVE = new Set([14, 18, 29, 38, 41]);
+// Levels whose line needs patience or a plan the bot hasn't got — a detour for the nerve,
+// or waiting for a moving platform. Hand-written routes in routes.mjs prove these instead.
+const ROUTED = new Set([14, 18, 22, 29, 38, 41, 51]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);
 let fails = 0, nerved = 0;
-const unreached = [];
 
 for (const [L, i] of list) {
   if (only == null && ROUTED.has(i)) {
     console.log(`  skip ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} covered by tests/routes.mjs`);
     continue;
   }
+  // greedy from the first pass: the door does not open unless the nerve comes with you,
+  // so "finishable" and "finishable with the nerve" are the same question now
   let best = null;
-  for (let s = 1; s <= 220; s++) {
-    const r = play(L, s * 7919 + i);
+  for (let s = 1; s <= 300; s++) {
+    const r = play(L, s * 7919 + i, 34, 30, !!L.nerve);
     if (r.ok) { best = { ...r, seed: s }; break; }
     if (!best || r.t > best.t) best = r;
   }
@@ -137,23 +136,19 @@ for (const [L, i] of list) {
     console.log(`  FAIL ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} ${best.why}`);
     continue;
   }
-  // second pass: can it also be finished WITH the nerve? The nerve sits off the safe
-  // line on purpose, so a bot failure here is a warning to check by hand, not a bug.
-  let nerveRun = null;
-  if (L.nerve) {
-    for (let s = 1; s <= 160; s++) {
-      const r = play(L, s * 6961 + i, 34, 30, true);
-      if (r.ok && r.nerve) { nerveRun = { ...r, seed: s }; break; }
-    }
-    if (nerveRun) nerved++; else if (!ROUTED_NERVE.has(i)) unreached.push(`${i + 1}. ${L.name}`);
+  if (L.nerve && !best.nerve) {
+    fails++;
+    console.log(`  FAIL ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} finished without the nerve — the lock is not holding`);
+    continue;
   }
+  if (L.nerve) nerved++;
   // a level that rearms as it kills you has to be beatable once it is done rearming
   const maxAfter = Math.max(0, ...(L.triggers || []).map((tr) => tr.after || 0));
   let armed = null;
   if (maxAfter > 0) {
-    for (let s = 1; s <= 220; s++) {
-      const r = play(L, s * 4451 + i, 34, 30, false, maxAfter);
-      if (r.ok) { armed = r; break; }
+    for (let s = 1; s <= 300; s++) {
+      const r = play(L, s * 4451 + i, 34, 30, !!L.nerve, maxAfter);
+      if (r.ok && (!L.nerve || r.nerve)) { armed = r; break; }
     }
     if (!armed) {
       fails++;
@@ -162,13 +157,11 @@ for (const [L, i] of list) {
     }
   }
   const armTag = armed ? `  ⚑ fully armed in ${armed.t.toFixed(1)}s` : '';
-  const tag = !L.nerve ? ''
-    : (nerveRun ? `  ◆ +nerve in ${nerveRun.t.toFixed(1)}s`
-      : (ROUTED_NERVE.has(i) ? '  ◆ nerve routed in routes.mjs' : '  ◆ nerve NOT taken by bot'));
+  const tag = L.nerve ? '  ◆ carried' : '';
   console.log(`  ok   ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} solved in ${best.t.toFixed(1)}s after ${best.deaths} deaths (seed ${best.seed})${tag}${armTag}`);
 }
 
-const withNerve = list.filter(([L, i]) => L.nerve && !(only == null && (ROUTED.has(i) || ROUTED_NERVE.has(i)))).length;
-console.log(fails ? `\n${fails} level(s) the bot could not finish.` : `\nAll levels solvable.`);
-console.log(`Nerve taken by the bot on ${nerved}/${withNerve} levels.` + (unreached.length ? ' Check by hand: ' + unreached.join(', ') : ''));
+const withNerve = list.filter(([L, i]) => L.nerve && !(only == null && ROUTED.has(i))).length;
+console.log(fails ? `\n${fails} level(s) the bot could not finish.` : `\nAll levels solvable — carrying the nerve, which is now the only way they can be.`);
+console.log(`Nerve carried to the door on ${nerved}/${withNerve} of the levels the bot played.`);
 process.exit(fails ? 1 : 0);

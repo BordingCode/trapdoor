@@ -94,6 +94,7 @@ function drainEvents(w) {
       case 'nerve': onNerve(e.a, e.b); break;
       case 'nervelost': onNerveLost(e.a, e.b); break;
       case 'glimpse': sfx.glimpse(); fx.quake(2, 0.15); break;
+      case 'locked': sfx.click(); fx.quake(2, 0.12); fx.text(e.a, e.b - 30, 'LOCKED', '#6ee7ff', 1.2); break;
       case 'die': onDeath(w, e.a, e.b, e.c); break;
       case 'win': onWin(w); break;
       default: break;
@@ -263,8 +264,8 @@ function showTitle() {
     ),
     el('p', { class: 'hint' },
       'Every level hides a ', el('b', {}, '◆ nerve'),
-      ' somewhere the safe route does not go — and you have to carry it to the door. ',
-      'Spend one to glimpse what the level is about to do to you.'),
+      ' somewhere the safe route does not go, and ', el('b', {}, 'the door will not open without it'),
+      '. Drop it — die — and it goes back. Spend one to glimpse what the level is about to do to you.'),
     el('p', { class: 'foot' }, s.total ? 'Deaths so far: ' + s.total + ' · nerve banked: ' + (s.nerve || 0)
       : 'Arrows / WASD · Space to jump · E to glimpse'),
   ));
@@ -335,7 +336,7 @@ function showClear() {
       el('div', {}, el('b', {}, String(d)), el('span', {}, d === 1 ? 'death' : 'deaths')),
     ),
     L.nerve ? el('p', { class: 'hint' },
-      gotNerve ? el('b', {}, '◆ Nerve banked') : 'You left the nerve behind.',
+      gotNerve ? el('b', {}, '◆ Nerve banked') : 'Nerve already banked.',
       ' — ' + CHAPTERS[ci].name + ' ' + cn.got + '/' + cn.total)
       : null,
     justOpened ? el('p', { class: 'hint' }, el('b', {}, '◆ Bonus level unlocked'), ' — find it in Levels.') : null,

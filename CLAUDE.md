@@ -2,7 +2,7 @@
 
 A short troll platformer, in the spirit of *Level Devil*: every level looks like a
 harmless tutorial, and then it isn't. Walk to the door. The floor has other ideas.
-48 levels in six chapters, plus one nerve-locked bonus level per chapter.
+56 levels in seven chapters, plus one nerve-locked bonus level per chapter.
 
 Live: https://bordingcode.github.io/trapdoor/ · repo `BordingCode/trapdoor` (branch `main`)
 
@@ -13,8 +13,18 @@ route is a bug — `tests/solve.mjs` exists to catch exactly that.
 
 Infinite retries, instant respawn, no lives. The stakes are pride and the death counter.
 
-## Nerve and the glimpse (the game's one real decision)
-Walking to the door is reaction. The **nerve** is the choice.
+## The nerve is the level
+**The door does not open unless you are carrying the nerve** (`World.doorLocked()`, checked
+in `checkDoor`). Reaching the door is not finishing the level: a locked door renders dull,
+barred and keyholed, says so once when you walk into it, and lets you straight past.
+
+`nerve` goes null once it has been banked, so a level you have already paid for opens
+normally on a replay — that is deliberate, and `tests/rules.mjs` rule 8 guards both halves
+(no door opens for someone without one; a banked level is still replayable).
+
+This is what makes the whole game harder rather than a set of optional detours: every
+nerve was already placed where the safe route does not go, so every level now *is* the
+detour plus the way back.
 
 - Each main level hides one **nerve** (`nerve: [tx, ty]` in the level data), always placed
   where the safe route does not go — over the trapdoor, at dart height, inside the
@@ -24,7 +34,7 @@ Walking to the door is reaction. The **nerve** is the choice.
   afterwards is. `World.holdingNerve()` is the carried state; `nerveBanked` (passed in from
   the save) is the permanent one, and `reset()` respawns the nerve whenever it isn't banked.
   `finishLevel()` in main.js is the only place that commits it.
-- Spend one for a **glimpse**: 1.5s in which the level draws everything it is still
+- Spend a banked one for a **glimpse**: 1.5s in which the level draws everything it is still
   holding back. This only works because traps are data — `World.truth()` reads the
   *un-fired* triggers and describes them as shapes.
 - You start with none. That is deliberate: a first encounter with a level must stay a
@@ -96,13 +106,23 @@ Chapter 6 stops attacking the room and attacks the player instead:
   a player reads the halo over their own head. It is not allowed to know anything else.
 - `nojump` takes the jump away until `nojump: 0`. Levels using it must have no *required*
   jump inside the window.
-- `crush chase: speed` steers at the player every frame. **A chaser can never be jumped
-  over** — it re-centres under you while you are airborne — so it may only ever start
-  *behind* you, and its speed must stay under the 168 run speed. What it actually does is
-  delete standing still, which is what makes a wide `hold:` spike bank (4 tiles: too wide
-  to jump, so you must wait for it) genuinely frightening.
+- `crush chase: speed` steers at the player every frame. It re-centres under you while you
+  are airborne, so jumping one costs you every pixel you had gained — but it *can* be
+  cleared, because a jump moves you at the 168 run speed while it only moves at `chase`.
+  Keep `chase` well under 168. What it really does is delete standing still, which is what
+  makes a wide `hold:` spike bank (4 tiles: too wide to jump, so you must wait for it)
+  genuinely frightening.
 - A blinking door is just `fakedoor` on an `every:` trigger, moving between two spots. Do
   not pair it with a chaser: the level needs you to be able to walk back the way you came.
+
+## Belts, and why they have lids
+`>` and `<` are solid floor tiles that carry you at `BELT_SPEED` (112px/s) — two thirds of
+a run, so upstream is 56px/s and downstream is 280px/s. They only apply while you are
+**grounded**, which means micro-hopping escapes them; that is the intended tech, not a
+bug, so levels that need the slog put a ceiling on it (*Conveyor*'s tunnel) or spikes on
+the ceiling (*Runaway*). Watch the arithmetic when a pulsing spike bank sits on a belt: a
+2-tile bank needs ~1.5s of down-time to cross at 56px/s, and on a belt you cannot stand
+still to wait — walking right at full tilt is the only way to hold position.
 
 ## Physics numbers the levels are designed against
 Run 168px/s · jump 520 → ~93px high (2.9 tiles) and ~120px across · gravity 1450 ·
