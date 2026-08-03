@@ -373,7 +373,8 @@ function showEnding() {
     el('p', { class: 'sub' }, 'Every door was real. Eventually.'),
     el('div', { class: 'stats' },
       el('div', {}, el('b', {}, String(s.total || 0)), el('span', {}, 'total deaths')),
-      el('div', {}, el('b', {}, String(Object.keys(s.nerves || {}).length) + '/' + MAIN_LEVELS), el('span', {}, 'nerve')),
+      // count the nerves that exist, not every key in the save — bonus levels carry none
+      el('div', {}, el('b', {}, String(LEVELS.filter((L, i) => L.nerve && s.nerves[i]).length) + '/' + MAIN_LEVELS), el('span', {}, 'nerve')),
     ),
     el('p', { class: 'hint' }, 'Every nerve you left behind is still down there. Collect a whole chapter to open its bonus level.'),
     el('div', { class: 'stack' },
