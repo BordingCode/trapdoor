@@ -170,6 +170,28 @@ export function render(view, w, fx, t) {
   // ---- movers (crushers, falling blocks, platforms)
   for (const m of w.movers) {
     if (m.delay > 0) continue;
+    if (m.kill) {
+      // a blade: you cannot stand on it, and it says so — teeth all the way round
+      block(ctx, m.x, m.y, m.w, m.h, '#4a2530', '#7b3543', '#2a1219');
+      ctx.fillStyle = C.spike;
+      const n = Math.max(2, Math.round(m.w / 12));
+      const step = m.w / n;
+      ctx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x0 = m.x + i * step;
+        ctx.moveTo(x0, m.y); ctx.lineTo(x0 + step / 2, m.y - 7); ctx.lineTo(x0 + step, m.y);
+        ctx.moveTo(x0, m.y + m.h); ctx.lineTo(x0 + step / 2, m.y + m.h + 7); ctx.lineTo(x0 + step, m.y + m.h);
+      }
+      const nv = Math.max(1, Math.round(m.h / 12));
+      const sv = m.h / nv;
+      for (let i = 0; i < nv; i++) {
+        const y0 = m.y + i * sv;
+        ctx.moveTo(m.x, y0); ctx.lineTo(m.x - 7, y0 + sv / 2); ctx.lineTo(m.x, y0 + sv);
+        ctx.moveTo(m.x + m.w, y0); ctx.lineTo(m.x + m.w + 7, y0 + sv / 2); ctx.lineTo(m.x + m.w, y0 + sv);
+      }
+      ctx.fill();
+      continue;
+    }
     block(ctx, m.x, m.y, m.w, m.h, C.mover, C.moverTop, '#2b2519');
     ctx.strokeStyle = 'rgba(0,0,0,0.25)';
     ctx.lineWidth = 2;
@@ -192,7 +214,12 @@ export function render(view, w, fx, t) {
   for (const dt of w.darts) {
     ctx.fillStyle = C.dart;
     ctx.beginPath();
-    if (dt.vx < 0) { ctx.moveTo(dt.x, dt.y + dt.h / 2); ctx.lineTo(dt.x + dt.w, dt.y); ctx.lineTo(dt.x + dt.w, dt.y + dt.h); }
+    if (Math.abs(dt.vy) > Math.abs(dt.vx)) {
+      // falling: a spike pointing the way it's going, drawn tall so it reads as an icicle
+      const cx = dt.x + dt.w / 2, top = dt.y - 6, bot = dt.y + dt.h + 6;
+      if (dt.vy > 0) { ctx.moveTo(cx, bot); ctx.lineTo(dt.x, top); ctx.lineTo(dt.x + dt.w, top); }
+      else { ctx.moveTo(cx, top); ctx.lineTo(dt.x, bot); ctx.lineTo(dt.x + dt.w, bot); }
+    } else if (dt.vx < 0) { ctx.moveTo(dt.x, dt.y + dt.h / 2); ctx.lineTo(dt.x + dt.w, dt.y); ctx.lineTo(dt.x + dt.w, dt.y + dt.h); }
     else { ctx.moveTo(dt.x + dt.w, dt.y + dt.h / 2); ctx.lineTo(dt.x, dt.y); ctx.lineTo(dt.x, dt.y + dt.h); }
     ctx.fill();
   }
@@ -233,7 +260,7 @@ export function render(view, w, fx, t) {
     ctx.lineWidth = 1.6;
     for (const g of w.truth()) {
       // red = it will hurt you, cyan = it is simply not what it looks like
-      const danger = !['phantom', 'door', 'appear'].includes(g.kind);
+      const danger = !['phantom', 'door', 'appear', 'liedoor'].includes(g.kind);
       ctx.strokeStyle = danger ? `rgba(226,88,107,${(0.55 + pulse * 0.45).toFixed(2)})` : 'rgba(110,231,255,0.85)';
       ctx.fillStyle = danger ? 'rgba(226,88,107,0.13)' : 'rgba(110,231,255,0.13)';
       switch (g.kind) {
@@ -295,6 +322,20 @@ export function render(view, w, fx, t) {
           ctx.strokeStyle = 'rgba(242,198,92,0.85)';
           ctx.strokeRect(g.x, g.y, g.w, g.h);
           break;
+        case 'liedoor':
+          // that door is a prop — the only warning you will get
+          ctx.strokeRect(g.x, g.y, g.w, g.h);
+          ctx.beginPath();
+          ctx.moveTo(g.x + 2, g.y + 2); ctx.lineTo(g.x + g.w - 2, g.y + g.h - 2);
+          ctx.moveTo(g.x + g.w - 2, g.y + 2); ctx.lineTo(g.x + 2, g.y + g.h - 2);
+          ctx.stroke();
+          break;
+        case 'gust': {
+          // the room is going to shove you, and in which direction
+          const dir = g.vx < 0 ? Math.PI : 0;
+          for (let k = 0; k < 4; k++) arrow(ctx, 90 + k * 190, 70 + (k % 2) * 44, dir, 16);
+          break;
+        }
         case 'acid':
           ctx.strokeStyle = 'rgba(95,217,122,0.9)';
           ctx.beginPath();

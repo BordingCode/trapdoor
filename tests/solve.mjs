@@ -21,9 +21,12 @@ function mulberry32(a) {
 
 // Walk at the door; jump at walls, gaps, hazards and anything sharp coming at you.
 // Everything else is random flailing, which is roughly how a human plays it too.
-function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false) {
+function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false, arm = 0) {
   const rnd = mulberry32(seed);
   const w = new World(level);
+  // `arm` pre-loads the death counter, so an `after:` level is played at its meanest —
+  // the state a real player reaches by dying, and the one that has to stay winnable
+  if (arm) w.deaths = arm;
   let t = 0, deaths = 0;
   let jumpFrames = 0, waitFor = 0, held = false;
   const trace = [];
@@ -106,9 +109,9 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false) {
 
 // Levels whose solution needs patience the bot doesn't have (waiting for a moving
 // platform to come back). They're covered by hand-written routes in routes.mjs instead.
-const ROUTED = new Set([22]);
+const ROUTED = new Set([22, 29]);
 // levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
-const ROUTED_NERVE = new Set([14, 18]);
+const ROUTED_NERVE = new Set([14, 18, 29]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);
@@ -141,10 +144,25 @@ for (const [L, i] of list) {
     }
     if (nerveRun) nerved++; else if (!ROUTED_NERVE.has(i)) unreached.push(`${i + 1}. ${L.name}`);
   }
+  // a level that rearms as it kills you has to be beatable once it is done rearming
+  const maxAfter = Math.max(0, ...(L.triggers || []).map((tr) => tr.after || 0));
+  let armed = null;
+  if (maxAfter > 0) {
+    for (let s = 1; s <= 220; s++) {
+      const r = play(L, s * 4451 + i, 34, 30, false, maxAfter);
+      if (r.ok) { armed = r; break; }
+    }
+    if (!armed) {
+      fails++;
+      console.log(`  FAIL ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} unbeatable once every after: trap is armed (${maxAfter} deaths in)`);
+      continue;
+    }
+  }
+  const armTag = armed ? `  ⚑ fully armed in ${armed.t.toFixed(1)}s` : '';
   const tag = !L.nerve ? ''
     : (nerveRun ? `  ◆ +nerve in ${nerveRun.t.toFixed(1)}s`
       : (ROUTED_NERVE.has(i) ? '  ◆ nerve routed in routes.mjs' : '  ◆ nerve NOT taken by bot'));
-  console.log(`  ok   ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} solved in ${best.t.toFixed(1)}s after ${best.deaths} deaths (seed ${best.seed})${tag}`);
+  console.log(`  ok   ${String(i + 1).padStart(2)}. ${L.name.padEnd(22)} solved in ${best.t.toFixed(1)}s after ${best.deaths} deaths (seed ${best.seed})${tag}${armTag}`);
 }
 
 const withNerve = list.filter(([L, i]) => L.nerve && !(only == null && (ROUTED.has(i) || ROUTED_NERVE.has(i)))).length;

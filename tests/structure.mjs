@@ -26,6 +26,7 @@ LEVELS.forEach((L, i) => {
     if (!CONDS.has(tr.on)) bad(`${tag}: trigger ${ti} has unknown condition '${tr.on}'`);
     if (tr.needs != null && !L.triggers[tr.needs]) bad(`${tag}: trigger ${ti} needs missing trigger ${tr.needs}`);
     if (tr.needs != null && tr.needs >= ti) bad(`${tag}: trigger ${ti} needs a later trigger — it can never fire`);
+    if (tr.after != null && !(Number.isInteger(tr.after) && tr.after > 0)) bad(`${tag}: trigger ${ti} has after:${tr.after} — must be a death count of 1 or more`);
     for (const a of tr.do || []) if (!ACTIONS.has(a.t)) bad(`${tag}: trigger ${ti} has unknown action '${a.t}'`);
   });
 
@@ -57,7 +58,12 @@ LEVELS.forEach((L, i) => {
 });
 
 // bonus levels: one per chapter, all after the main run
-if (MAIN_LEVELS !== 24) bad(`expected 24 main levels before the bonus block, got ${MAIN_LEVELS}`);
+const EXPECT_MAIN = CHAPTERS.length * 8;   // every chapter is exactly eight levels long
+if (MAIN_LEVELS !== EXPECT_MAIN) bad(`expected ${EXPECT_MAIN} main levels before the bonus block, got ${MAIN_LEVELS}`);
+CHAPTERS.forEach((ch, ci) => {
+  const n = LEVELS.filter((L) => L.chapter === ci && !L.bonus).length;
+  if (n !== 8) bad(`chapter ${ci + 1} (${ch.name}) has ${n} main levels, expected 8`);
+});
 CHAPTERS.forEach((ch, ci) => {
   const n = LEVELS.filter((L) => L.bonus && L.chapter === ci).length;
   if (n !== 1) bad(`chapter ${ci + 1} (${ch.name}) has ${n} bonus levels, expected 1`);

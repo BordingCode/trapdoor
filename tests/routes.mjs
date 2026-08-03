@@ -84,10 +84,36 @@ function risingPolicy(w) {
   return { dir: 1, jump: true };
 }
 
+// "The Long Climb": four landings, each reachable only from a fixed launch point, and a
+// nerve hanging in the dart lane above the third one. Same shape as Rising — the bot in
+// solve.mjs parks under the door and jumps on the spot, because it cannot plan a detour.
+const CLIMB = [[112, 288], [272, 224], [432, 160], [560, 96]];  // [jump-from x, top it reaches]
+function longClimbPolicy(w) {
+  const p = w.player;
+  const feet = p.y + p.h;
+  let idx = CLIMB.findIndex(([, top]) => Math.abs(feet - top) < 3);
+  if (feet > 340) idx = -1;                                      // still on the ground
+  const n = w.nerve;
+  if (n && !n.got && idx === 2) {                                // straight up off the third landing
+    if (!p.grounded) return { dir: 0, jump: false };
+    if (p.x < 508) return { dir: 1, jump: false };
+    if (p.x > 522) return { dir: -1, jump: false };
+    return { dir: 0, jump: true };
+  }
+  const next = CLIMB[idx + 1];
+  if (!next) return { dir: p.x < 640 ? 1 : 0, jump: false };      // top landing: to the door
+  const from = next[0];
+  if (!p.grounded) return { dir: 1, jump: false };
+  if (p.x < from - 4) return { dir: 1, jump: false };
+  if (p.x > from + 14) return { dir: -1, jump: false };
+  return { dir: 1, jump: true };
+}
+
 const cases = [
   { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
   { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
   { i: 14, name: 'Rising (with nerve)', requireNerve: true, policy: risingPolicy },
+  { i: 29, name: 'The Long Climb', requireNerve: true, policy: longClimbPolicy },
 ];
 
 let fails = 0;

@@ -7,12 +7,15 @@
 //   o  looks solid, crumbles 0.3s after you stand on it
 //   =  looks solid, isn't solid at all
 //
-// Trigger  { on, ...cond, delay?, once?, every?, needs?, do:[actions] }
+// Trigger  { on, ...cond, delay?, once?, every?, needs?, after?, do:[actions] }
 //   on: zone(x,y,w,h) | stand(x,y,w) | pastx(x) | above(y) | time(s) | move | air | land | door(d)
+//   after: n — only arms once the level has killed you n times this visit (it holds a grudge)
 // Actions  (each may carry d: extra delay in seconds)
-//   set(x,y,w,h,c) spikes(x,y,w,h,from) crush(x,y,w,h,vx,vy,sx,sy,bounce) drop(x,y,w,h)
-//   dart(x,y,vx) door(x,y) grav(v) ice(v) dark(v) acid(y,from,speed) push(vx,vy)
-//   shake(mag) say(text) sfx(name)
+//   set(x,y,w,h,c) spikes(x,y,w,h,from,hold) crush(x,y,w,h,vx,vy,sx,sy,bounce,kill,solid)
+//   drop(x,y,w,h) dart(x,y,vx,vy) door(x,y) fakedoor(v) grav(v) ice(v) dark(v)
+//   acid(y,from,speed) push(vx,vy) shake(mag) say(text) sfx(name)
+//   spikes hold:s pull back in after s seconds — a rhythm instead of a wall
+//   crush kill:true is a blade (give it solid:false so you cannot ride what cuts you)
 
 const E = '........................';
 const F = '########################';
@@ -429,6 +432,181 @@ export const LEVELS = [
     ],
   },
 
+  // ---------------------------------------------------------------- CHAPTER 4
+  // The chapter of bad faith: the door can be a prop, spikes breathe in and out, blades
+  // do not care that you are standing on them, and `after:` levels rearm meaner every
+  // time they kill you. Everything here is still avoidable — once you know.
+  {
+    name: 'Second Thoughts',
+    chapter: 3,
+    nerve: [9, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.5, do: [{ t: 'say', text: 'A floor. A door. You know the drill.', life: 3 }] },
+      { on: 'stand', x: 9, y: 11, w: 2, do: [
+        { t: 'set', x: 9, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'shake', mag: 5 },
+        { t: 'say', text: 'You saw that coming.', life: 2 },
+      ] },
+      // the level keeps score: one death buys a spike, two buys the darts
+      { on: 'pastx', x: 12, after: 1, do: [
+        { t: 'spikes', x: 15, y: 10, w: 2, h: 1, from: 'up' },
+        { t: 'say', text: 'That is one. Here is a spike.', life: 2.8 },
+      ] },
+      { on: 'pastx', x: 4, after: 2, do: [{ t: 'say', text: 'Two. I am adding darts.', life: 2.6 }] },
+      { on: 'pastx', x: 4, every: 1.6, after: 2, do: [{ t: 'dart', x: 23, y: 10, vx: -280 }] },
+    ],
+  },
+  {
+    name: 'The Wrong Door',
+    chapter: 3,
+    nerve: [20, 8],   // right above the prop, so you have to reach for the lie
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      // fake from the first frame: the door is dimmer than it should be, and that is
+      // the only warning you get for free. A glimpse crosses it out.
+      { on: 'time', s: 0, do: [{ t: 'fakedoor' }] },
+      { on: 'door', d: 2.0, needs: 0, do: [
+        { t: 'say', text: 'That one is a prop.', life: 2.6 },
+        { t: 'fakedoor', v: false },
+        { t: 'door', x: 3, y: 10 },
+        { t: 'shake', mag: 6 },
+        // two single hops on the way back, not two walls — the joke is the door, and a
+        // return trip you cannot make is not a joke
+        { t: 'spikes', x: 15, y: 10, w: 1, h: 1, from: 'up', d: 0.3 },
+        { t: 'spikes', x: 8, y: 10, w: 1, h: 1, from: 'up', d: 0.7 },
+      ] },
+      // and something to make sure you don't stroll back
+      { on: 'zone', x: 15, y: 8, w: 3, h: 4, needs: 1, do: [
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -130, sx: 0, kill: true, solid: false, quake: false },
+      ] },
+    ],
+  },
+  {
+    name: 'Pendulum',
+    chapter: 3,
+    nerve: [11, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 4, do: [{ t: 'say', text: 'They breathe. Learn the count.', life: 3 }] },
+      // spikes that pull back in: the floor is only lethal on the beat
+      { on: 'pastx', x: 4, every: 2.0, do: [
+        { t: 'spikes', x: 8, y: 10, w: 2, h: 1, from: 'up', hold: 0.95 },
+        { t: 'spikes', x: 18, y: 10, w: 1, h: 1, from: 'up', hold: 0.6, d: 0.5 },
+        { t: 'spikes', x: 14, y: 10, w: 2, h: 1, from: 'up', hold: 0.95, d: 1.0 },
+      ] },
+    ],
+  },
+  {
+    name: 'Sawmill',
+    chapter: 3,
+    nerve: [12, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E,
+      '.......###.......###....',
+      SD,
+      F, F,
+    ],
+    triggers: [
+      { on: 'pastx', x: 4, do: [
+        { t: 'crush', x: 23, y: 10, w: 2, h: 1, vx: -165, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+        { t: 'say', text: 'The ledges are for standing on.', life: 3 },
+      ] },
+      // …and this is why they aren't
+      { on: 'pastx', x: 11, do: [
+        { t: 'crush', x: -2, y: 8, w: 2, h: 1, vx: 175, sx: 22, bounce: true, kill: true, solid: false, quake: false },
+        { t: 'say', text: 'Were.', life: 2 },
+      ] },
+    ],
+  },
+  {
+    name: 'Headwind',
+    chapter: 3,
+    nerve: [13, 8],   // exactly at the apex of the jump over the pit
+    grid: [
+      E, E, E, E, E, E, E, E, E, E, SD,
+      '#############..#########',
+      '#############..#########',
+    ],
+    triggers: [
+      { on: 'pastx', x: 5, do: [{ t: 'say', text: 'The room breathes too. Not for you.', life: 3.2 }] },
+      { on: 'pastx', x: 5, every: 1.5, do: [{ t: 'push', vx: -300 }, { t: 'shake', mag: 4 }] },
+      { on: 'pastx', x: 16, do: [{ t: 'spikes', x: 18, y: 10, w: 2, h: 1, from: 'up' }] },
+    ],
+  },
+  {
+    name: 'The Long Climb',
+    chapter: 3,
+    // the nerve hangs in the dart lane, one jump above the third landing
+    nerve: [16, 3],
+    grid: [
+      E, E,
+      '....................D...',
+      '...................####.',
+      E,
+      '...............####.....',
+      E,
+      '..........####..........',
+      E,
+      '.....####...............',
+      '..S.....................',
+      F, F,
+    ],
+    triggers: [
+      { on: 'above', y: 10, do: [{ t: 'say', text: 'Up. Do not plan on coming back.', life: 3 }] },
+      // each landing sprouts the moment you leave it: there is only ever one way, forwards
+      { on: 'above', y: 8, do: [{ t: 'spikes', x: 5, y: 8, w: 4, h: 1, from: 'up' }] },
+      { on: 'above', y: 6, do: [{ t: 'spikes', x: 10, y: 6, w: 4, h: 1, from: 'up' }] },
+      // and something crossing the gap you have to jump through to finish
+      { on: 'above', y: 6, every: 1.8, do: [{ t: 'dart', x: 23, y: 3, vx: -280 }] },
+      { on: 'above', y: 4, do: [
+        { t: 'spikes', x: 15, y: 4, w: 4, h: 1, from: 'up' },
+        { t: 'say', text: 'Nearly. Do not look down.', life: 2.6 },
+      ] },
+    ],
+  },
+  {
+    name: 'Icicles',
+    chapter: 3,
+    nerve: [11, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E,
+      '.....###......###.......',   // the only two umbrellas in the level
+      SD,
+      F, F,
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'The ceiling is not fond of you either.', life: 3 }] },
+      { on: 'pastx', x: 3, every: 1.25, do: [
+        { t: 'dart', x: 9, y: 0, vx: 0, vy: 340 },
+        { t: 'dart', x: 19, y: 0, vx: 0, vy: 340, d: 0.3 },
+        { t: 'dart', x: 12, y: 0, vx: 0, vy: 340, d: 0.62 },
+        { t: 'dart', x: 21, y: 0, vx: 0, vy: 340, d: 0.9 },
+      ] },
+    ],
+  },
+  {
+    name: 'Nothing Personal',
+    chapter: 3,
+    nerve: [8, 9],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'Nothing personal.', life: 2.4 }] },
+      { on: 'pastx', x: 6, do: [
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -200, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'door', d: 2.2, do: [
+        { t: 'set', x: 10, y: 9, w: 5, h: 1, c: '#' },
+        { t: 'door', x: 12, y: 8 },
+        { t: 'say', text: 'Up there. With that still running.', life: 3.2 },
+      ] },
+      { on: 'zone', x: 9, y: 6, w: 7, h: 3, needs: 2, do: [
+        { t: 'spikes', x: 14, y: 8, w: 1, h: 1, from: 'up' },
+        { t: 'say', text: 'Go on, then.', life: 2.2 },
+      ] },
+    ],
+  },
+
   // ------------------------------------------------------- BONUS (nerve-locked)
   // One per chapter, opened by collecting all 8 nerves in that chapter. These are
   // allowed to be mean — you only get here by volunteering for danger eight times.
@@ -500,6 +678,27 @@ export const LEVELS = [
       ] },
     ],
   },
+  {
+    name: 'Second Opinion',
+    chapter: 3,
+    bonus: true,
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0, do: [{ t: 'fakedoor' }] },
+      { on: 'time', s: 0.5, do: [{ t: 'say', text: 'Straight there. What could go wrong.', life: 3 }] },
+      { on: 'pastx', x: 4, every: 1.9, do: [
+        { t: 'spikes', x: 9, y: 10, w: 2, h: 1, from: 'up', hold: 0.8 },
+        { t: 'spikes', x: 15, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 0.95 },
+      ] },
+      // the whole level again, backwards, with something behind you
+      { on: 'door', d: 2.0, needs: 0, do: [
+        { t: 'fakedoor', v: false },
+        { t: 'door', x: 2, y: 10 },
+        { t: 'say', text: 'Back you go. Mind the count.', life: 3 },
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -190, sx: 0, kill: true, solid: false, quake: false, wait: 0.6 },
+      ] },
+    ],
+  },
 ];
 
 // index of the last level of the main run — everything after it is nerve-locked bonus
@@ -509,6 +708,7 @@ export const CHAPTERS = [
   { name: 'Ground Rules', tag: 'The floor is your friend.' },
   { name: 'Sharp Practice', tag: 'It was never your friend.' },
   { name: 'Malice', tag: 'Now it is personal.' },
+  { name: 'Bad Faith', tag: 'It learns from your deaths.' },
 ];
 
 // Shown after a few deaths on the same level — the level gloating, not a hint.

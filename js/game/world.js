@@ -268,9 +268,16 @@ export class World {
       } else this.crumbling.set(k, nt);
     }
 
+    // Spike banks: out fast, and — if the level gave them a `hold` — back in again, which
+    // turns a static hazard into a rhythm you have to read.
     for (const s of this.spikes) {
-      if (s.t < 1) { s.t = Math.min(1, s.t + dt / s.dur); if (s.t >= 1) s.settled = true; }
-      if (s.retract) { s.t = Math.max(0, s.t - dt / s.dur); }
+      if (!s.retract) {
+        if (s.t < 1) { s.t = Math.min(1, s.t + dt / s.dur); if (s.t >= 1) s.settled = true; }
+        else if (s.hold != null) { s.holdT -= dt; if (s.holdT <= 0) { s.retract = true; this.emit('spikeback'); } }
+      } else s.t = Math.max(0, s.t - dt / s.dur);
+    }
+    for (let i = this.spikes.length - 1; i >= 0; i--) {
+      if (this.spikes[i].retract && this.spikes[i].t <= 0) this.spikes.splice(i, 1);
     }
 
     for (let i = this.movers.length - 1; i >= 0; i--) {
@@ -435,10 +442,14 @@ export class World {
       else if (c === 'o') push('brittle', tx * TILE, ty * TILE, TILE, TILE);
     }
 
+    // a door that is a prop: the glimpse will tell you, which is what it's for
+    if (this.door.fake) push('liedoor', this.door.x, this.door.y, this.door.w, this.door.h);
+
     const trigs = this.level.triggers || [];
     for (let i = 0; i < trigs.length; i++) {
       const tr = trigs[i];
       if (tr.every == null && tr.once !== false && this.fired.has('T' + i)) continue;
+      if (tr.after != null && this.deaths < tr.after) continue;  // not armed yet — not a lie to omit it
       for (const a of tr.do || []) {
         const w = (a.w || 1) * TILE, h = (a.h || 1) * TILE;
         switch (a.t) {
@@ -460,6 +471,8 @@ export class World {
           case 'door':
             push('door', a.x * TILE + 5, (a.y - 1) * TILE + 4, TILE - 10, TILE * 2 - 4);
             break;
+          case 'push': push('gust', 0, 0, WORLD_W, WORLD_H, { vx: a.vx || 0, vy: a.vy || 0 }); break;
+          case 'fakedoor': if (a.v !== false) push('liedoor', this.door.x, this.door.y, this.door.w, this.door.h); break;
           case 'grav': push('grav', 0, 0, 0, 0, { v: a.v }); break;
           case 'acid': push('acid', 0, a.y * TILE, WORLD_W, 4); break;
           case 'ice': push('ice', 0, 0, 0, 0); break;
@@ -502,6 +515,9 @@ export class World {
       const key = 'T' + i;
       // `needs` chains triggers: the door can only run away a second time after the first
       if (tr.needs != null && !this.fired.has('T' + tr.needs)) continue;
+      // `after` is the level holding a grudge: it only arms once it has killed you n times
+      // (deaths survive reset, so the level escalates within a session and forgets if you leave)
+      if (tr.after != null && this.deaths < tr.after) continue;
       const met = this.condMet(tr);
       if (tr.every != null) {                       // repeating on a cooldown
         if (!met) continue;
@@ -581,7 +597,11 @@ export class World {
         const from = a.from || 'up';
         const w = (a.w || 1) * TILE, h = (a.h || 1) * TILE;
         const len = (from === 'up' || from === 'down') ? h : w;
-        this.spikes.push({ x: a.x * TILE, y: a.y * TILE, w, h, from, len, t: 0, dur: a.dur || 0.13, teeth: Math.max(1, Math.round(((from === 'up' || from === 'down') ? (a.w || 1) : (a.h || 1)) * 2)) });
+        this.spikes.push({
+          x: a.x * TILE, y: a.y * TILE, w, h, from, len, t: 0, dur: a.dur || 0.13,
+          hold: a.hold ?? null, holdT: a.hold ?? 0,   // hold = seconds out before they pull back in
+          teeth: Math.max(1, Math.round(((from === 'up' || from === 'down') ? (a.w || 1) : (a.h || 1)) * 2)),
+        });
         this.emit('spike', (a.x + (a.w || 1) / 2) * TILE, (a.y + (a.h || 1) / 2) * TILE);
         break;
       }
@@ -591,7 +611,9 @@ export class World {
           vx: (a.vx || 0), vy: (a.vy || 0),
           stopX: a.sx != null ? a.sx * TILE : null, stopY: a.sy != null ? a.sy * TILE : null,
           homeX: a.x * TILE, homeY: a.y * TILE, speed: Math.abs(a.vx || a.vy || 0),
-          bounce: !!a.bounce, solid: true, kill: null, quake: a.quake !== false, delay: a.wait || 0, col: a.col || null,
+          // a blade (`kill`) is usually `solid:false` too — you cannot ride what cuts you
+          bounce: !!a.bounce, solid: a.solid !== false, kill: !!a.kill,
+          quake: a.quake !== false, delay: a.wait || 0, col: a.col || null,
         });
         this.emit('trap');
         break;

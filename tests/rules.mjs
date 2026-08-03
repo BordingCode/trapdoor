@@ -115,5 +115,37 @@ const idle = { left: false, right: false, jumpHeld: false, jumpPressed: false };
   else ok(`a glimpse runs once and expires (${t.toFixed(2)}s)`);
 }
 
+// ---- 7. an old save survives a new chapter --------------------------------------
+// Bonus levels sit at the end of the array, so adding a chapter shifts them — and every
+// record is keyed by level index. A save written under the old layout must come back with
+// its bonus progress attached to the same LEVELS, not to whatever now sits at index 24.
+{
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (store.has(k) ? store.get(k) : null),
+    setItem: (k, v) => store.set(k, String(v)),
+    removeItem: (k) => store.delete(k),
+  };
+  const { load } = await import('../js/game/save.js');
+  const bonusNow = LEVELS.map((L, i) => (L.bonus ? i : -1)).filter((i) => i >= 0);
+  const legacy = {                                  // 27 levels, bonus at 24/25/26
+    unlocked: 28, cleared: [], deaths: { 24: 9 }, best: { 24: 12.5 }, total: 40,
+    nerves: { 0: true, 24: true }, nerve: 1, bonusSeen: { 0: true },
+  };
+  for (let i = 0; i < 25; i++) legacy.cleared[i] = true;
+  store.set('trapdoor_save_v1', JSON.stringify(legacy));
+  const s = load();
+  if (s.deaths[bonusNow[0]] !== 9 || s.best[bonusNow[0]] !== 12.5 || !s.nerves[bonusNow[0]]) {
+    bad(`save migration: bonus level 1 lost its record moving 24 -> ${bonusNow[0]}`);
+  } else if (s.deaths[24] != null || s.nerves[24]) {
+    bad('save migration: the new level at index 24 inherited the old bonus level\'s record');
+  } else if (s.unlocked !== 25) {
+    bad(`save migration: unlocked came back as ${s.unlocked}, expected 25 (24 main levels cleared)`);
+  } else if (!s.nerves[0]) {
+    bad('save migration: a main-run nerve was lost');
+  } else ok(`an old save keeps its bonus progress (24 -> ${bonusNow[0]}) and unlocks nothing free`);
+  delete globalThis.localStorage;
+}
+
 console.log(fails ? `\n${fails} rule(s) broken.` : `\nAll rules hold.`);
 process.exit(fails ? 1 : 0);
