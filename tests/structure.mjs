@@ -90,10 +90,11 @@ LEVELS.forEach((L, i) => {
     if (a.t === 'set' && a.c !== '.') {
       for (let y = a.y; y < a.y + (a.h || 1); y++) for (let x = a.x; x < a.x + (a.w || 1); x++) surfaces.push([x, y]);
     } else if (a.t === 'crush' || a.t === 'drop') {
-      // both where it appears and where it comes to rest — you can ride either
-      for (const [ox, oy] of [[a.x, a.y], [a.sx ?? a.x, a.sy ?? a.y]]) {
-        for (let x = ox; x < ox + (a.w || 1); x++) surfaces.push([x, oy]);
-      }
+      // anywhere along its travel, not just the ends — a lift is a surface at every
+      // height it passes through, which is exactly where you'd hang a nerve
+      const y0 = Math.min(a.y, a.sy ?? a.y), y1 = Math.max(a.y, a.sy ?? a.y);
+      const x0 = Math.min(a.x, a.sx ?? a.x), x1 = Math.max(a.x, a.sx ?? a.x);
+      for (let oy = y0; oy <= y1; oy++) for (let x = x0; x < x1 + (a.w || 1); x++) surfaces.push([x, oy]);
     } else if (a.t === 'grav' && a.v < 0) flips = true;
   }
   if (flips) for (let tx = 0; tx < COLS; tx++) surfaces.push([tx, -1]);   // the ceiling becomes the floor

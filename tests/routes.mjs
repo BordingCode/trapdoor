@@ -109,11 +109,38 @@ function longClimbPolicy(w) {
   return { dir: 1, jump: true };
 }
 
+// "Elevator": fetch the nerve from the far end of the blade's lane, come back to the pad,
+// let the floor carry you up, and step off onto the ledge. The bot in solve.mjs never
+// rides anything — it walks under the door and jumps on the spot.
+function elevatorPolicy(w) {
+  const p = w.player;
+  const feet = p.y + p.h;
+  const n = w.nerve;
+  const needNerve = !!(n && !n.got);
+  const lifts = w.movers.filter((m) => m.solid).sort((a, b) => b.y - a.y);
+  const onLift = lifts.find((m) => Math.abs(feet - m.y) < 4 && p.x + p.w > m.x && p.x < m.x + m.w);
+  const blade = w.movers.find((m) => m.kill);
+  let goal;
+  if (onLift && onLift.y > 100) goal = needNerve ? 690 : null;   // riding: hold still, unless
+  else if (feet < 200) goal = 640;                               // we still owe the detour below
+  else goal = needNerve ? 690 : 490;                             // floor: the nerve, then the pad
+  if (goal == null) return { dir: 0, jump: false };
+  const dir = Math.abs(p.x - goal) < 8 ? 0 : Math.sign(goal - p.x);
+  // step off the top only from the very edge — the ledge is a tile away, not adjacent
+  let jump = !!(onLift && onLift.y <= 100 && p.x + p.w > onLift.x + onLift.w - 10);
+  if (blade && p.grounded && feet > 340) {                       // hop the blade, either way
+    const dx = (blade.x + blade.w / 2) - (p.x + p.w / 2);
+    if (Math.abs(dx) < 95 && Math.sign(dx) !== Math.sign(blade.vx)) jump = true;
+  }
+  return { dir, jump };
+}
+
 const cases = [
   { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
   { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
   { i: 14, name: 'Rising (with nerve)', requireNerve: true, policy: risingPolicy },
   { i: 29, name: 'The Long Climb', requireNerve: true, policy: longClimbPolicy },
+  { i: 38, name: 'Elevator', requireNerve: true, policy: elevatorPolicy },
 ];
 
 let fails = 0;

@@ -16,6 +16,7 @@
 //   acid(y,from,speed) push(vx,vy) shake(mag) say(text) sfx(name)
 //   spikes hold:s pull back in after s seconds — a rhythm instead of a wall
 //   crush kill:true is a blade (give it solid:false so you cannot ride what cuts you)
+//   crush gone:s dissolves s seconds after it arrives — a lift that does not wait around
 
 const E = '........................';
 const F = '########################';
@@ -607,6 +608,184 @@ export const LEVELS = [
     ],
   },
 
+  // ---------------------------------------------------------------- CHAPTER 5
+  // The last chapter drops the pretence that any of this is a tutorial. Nothing new is
+  // introduced here — it is the whole vocabulary at once, at a speed that assumes you
+  // learned it.
+  {
+    name: 'Muscle Memory',
+    chapter: 4,
+    nerve: [6, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.5, do: [{ t: 'say', text: 'You have played this one before.', life: 3 }] },
+      // level 2's trapdoor, four tiles earlier. Knowing the game is now a liability.
+      { on: 'stand', x: 6, y: 11, w: 2, do: [
+        { t: 'set', x: 6, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'shake', mag: 5 },
+        { t: 'say', text: 'Different spot.', life: 2 },
+      ] },
+      { on: 'pastx', x: 10, after: 1, do: [
+        { t: 'set', x: 13, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'say', text: 'And there.', life: 2 },
+      ] },
+      { on: 'pastx', x: 4, after: 2, do: [
+        { t: 'spikes', x: 17, y: 10, w: 1, h: 1, from: 'up' },
+        { t: 'say', text: 'Third time. You know what goes here.', life: 3 },
+      ] },
+    ],
+  },
+  {
+    name: 'Blind Rhythm',
+    chapter: 4,
+    nerve: [10, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 4, do: [{ t: 'dark', v: 0.92 }, { t: 'say', text: 'Count it. Do not look.', life: 3 }] },
+      // a wave of spikes travelling right: stay behind the beat and it opens for you
+      { on: 'pastx', x: 4, every: 1.8, do: [
+        { t: 'spikes', x: 8, y: 10, w: 2, h: 1, from: 'up', hold: 0.8 },
+        { t: 'spikes', x: 12, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 0.6 },
+        { t: 'spikes', x: 16, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 1.2 },
+      ] },
+    ],
+  },
+  {
+    name: 'Downstairs',
+    chapter: 4,
+    nerve: [12, 5],
+    grid: [
+      E,
+      '..S.....................',
+      '#####..#################',
+      E,
+      '#########..#############',
+      E,
+      '#############..#########',
+      E,
+      '#################..#####',
+      E,
+      '....................D...',
+      F, F,
+    ],
+    triggers: [
+      { on: 'move', do: [
+        { t: 'acid', y: 10, from: 13, speed: 17 },
+        { t: 'say', text: 'Down. The basement is filling.', life: 3.2 },
+      ] },
+      // the floor you land on stops being a floor to stand on
+      { on: 'zone', x: 5, y: 3, w: 4, h: 1, do: [{ t: 'spikes', x: 5, y: 3, w: 3, h: 1, from: 'up', d: 0.8 }] },
+      { on: 'zone', x: 9, y: 5, w: 4, h: 1, do: [{ t: 'spikes', x: 9, y: 5, w: 3, h: 1, from: 'up', d: 0.8 }] },
+      { on: 'zone', x: 13, y: 7, w: 4, h: 1, do: [{ t: 'spikes', x: 13, y: 7, w: 3, h: 1, from: 'up', d: 0.8 }] },
+    ],
+  },
+  {
+    name: 'Both Ways',
+    chapter: 4,
+    nerve: [12, 1],
+    grid: [
+      '.........vv.....vv......',
+      E, E, E, E, E, E, E, E, E,
+      '..S..^^......^^......D..',
+      F, F,
+    ],
+    triggers: [
+      { on: 'pastx', x: 4, do: [{ t: 'say', text: 'Pick a side. It will not last.', life: 3 }] },
+      // 1.3 seconds a side, and the two sides are spiked in different places
+      { on: 'pastx', x: 4, every: 2.6, do: [{ t: 'grav', v: -1 }, { t: 'shake', mag: 5 }] },
+      { on: 'pastx', x: 4, every: 2.6, delay: 1.3, do: [{ t: 'grav', v: 1 }, { t: 'shake', mag: 5 }] },
+    ],
+  },
+  {
+    name: 'Meat Grinder',
+    chapter: 4,
+    nerve: [11, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      SD,
+      '####oooooooooooooooo####',
+      '####oooooooooooooooo####',
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'Keep moving. Both reasons.', life: 3 }] },
+      { on: 'pastx', x: 5, do: [
+        // it does not stop at the wall: what is left of the floor gets a second pass
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -195, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+      ] },
+    ],
+  },
+  {
+    name: 'Slalom',
+    chapter: 4,
+    nerve: [12, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice, and a metronome.', life: 3 }] },
+      { on: 'pastx', x: 3, every: 1.7, do: [
+        { t: 'spikes', x: 9, y: 10, w: 1, h: 1, from: 'up', hold: 0.75 },
+        { t: 'spikes', x: 14, y: 10, w: 1, h: 1, from: 'up', hold: 0.75, d: 0.85 },
+        { t: 'spikes', x: 19, y: 10, w: 1, h: 1, from: 'up', hold: 0.75, d: 1.4 },
+      ] },
+    ],
+  },
+  {
+    name: 'Elevator',
+    chapter: 4,
+    nerve: [21, 10],   // past the pad, in the blade's lane, and you have to come back
+    grid: [
+      E, E,
+      '....................D...',
+      '..................######',
+      E, E, E, E, E, E,
+      '..S.....................',
+      F, F,
+    ],
+    triggers: [
+      { on: 'pastx', x: 5, do: [{ t: 'say', text: 'Stand on the pad. It does not wait at the top.', life: 3.4 }] },
+      // step on the pad and it comes up out of the floor under you. It starts one row
+      // INSIDE the floor on purpose: a solid block spawned overlapping you shoves you
+      // sideways out of it instead of lifting you.
+      { on: 'zone', x: 15, y: 10, w: 1, h: 1, once: false, do: [
+        { t: 'crush', x: 14, y: 11, w: 3, h: 1, vy: -72, sy: 3, quake: false, gone: 0.55 },
+      ] },
+      // touching the nerve sends a blade up the floor between you and the pad: the walk
+      // out is free, the walk back is the price
+      { on: 'zone', x: 20, y: 10, w: 2, h: 1, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, vx: 170, sx: 23, kill: true, solid: false, quake: false },
+        { t: 'say', text: 'Enjoy the walk back.', life: 2.6 },
+      ] },
+      { on: 'pastx', x: 12, every: 2.4, do: [{ t: 'dart', x: 23, y: 6, vx: -300 }] },
+    ],
+  },
+  {
+    name: 'The Last Word',
+    chapter: 4,
+    nerve: [7, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'Last one. And this time I mean it.', life: 3 }] },
+      { on: 'pastx', x: 4, every: 1.9, do: [
+        { t: 'spikes', x: 10, y: 10, w: 2, h: 1, from: 'up', hold: 0.8 },
+        { t: 'spikes', x: 16, y: 10, w: 1, h: 1, from: 'up', hold: 0.8, d: 0.95 },
+      ] },
+      { on: 'pastx', x: 8, do: [
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -160, sx: 0, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'door', d: 2.2, do: [
+        { t: 'set', x: 9, y: 9, w: 5, h: 1, c: '#' },
+        { t: 'door', x: 11, y: 8 },
+        { t: 'say', text: 'Up.', life: 2 },
+      ] },
+      { on: 'door', d: 2.0, needs: 3, do: [
+        { t: 'grav', v: -1 },
+        { t: 'door', x: 11, y: 1, d: 0.4 },
+        { t: 'say', text: '…and up.', life: 2.4 },
+        { t: 'spikes', x: 14, y: 0, w: 2, h: 1, from: 'down', d: 1.2 },
+      ] },
+      { on: 'door', d: 1.6, needs: 4, do: [{ t: 'say', text: 'Fine. Take it.', life: 3 }] },
+    ],
+  },
+
   // ------------------------------------------------------- BONUS (nerve-locked)
   // One per chapter, opened by collecting all 8 nerves in that chapter. These are
   // allowed to be mean — you only get here by volunteering for danger eight times.
@@ -699,6 +878,30 @@ export const LEVELS = [
       ] },
     ],
   },
+  {
+    name: 'Spite',
+    chapter: 4,
+    bonus: true,
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      '..S..................D..',
+      '####oooooooooooooooo####',
+      '####oooooooooooooooo####',
+    ],
+    triggers: [
+      { on: 'move', do: [
+        { t: 'ice', v: 1 },
+        { t: 'say', text: 'Ice, a floor that is leaving, and me.', life: 3.4 },
+      ] },
+      { on: 'pastx', x: 4, every: 2.1, do: [
+        { t: 'spikes', x: 11, y: 10, w: 1, h: 1, from: 'up', hold: 0.7 },
+        { t: 'spikes', x: 16, y: 10, w: 1, h: 1, from: 'up', hold: 0.7, d: 1.0 },
+      ] },
+      { on: 'pastx', x: 9, do: [
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -210, sx: 0, kill: true, solid: false, quake: false },
+      ] },
+    ],
+  },
 ];
 
 // index of the last level of the main run — everything after it is nerve-locked bonus
@@ -709,6 +912,7 @@ export const CHAPTERS = [
   { name: 'Sharp Practice', tag: 'It was never your friend.' },
   { name: 'Malice', tag: 'Now it is personal.' },
   { name: 'Bad Faith', tag: 'It learns from your deaths.' },
+  { name: 'The Grudge', tag: 'It has stopped pretending.' },
 ];
 
 // Shown after a few deaths on the same level — the level gloating, not a hint.

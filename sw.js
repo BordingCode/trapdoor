@@ -1,6 +1,6 @@
 // Network-first for same-origin GETs: online players always get fresh code, the cache is
 // the offline safety net. Bump CACHE on every shippable change or the old files stick.
-const CACHE = 'trapdoor-v8';
+const CACHE = 'trapdoor-v9';
 const SHELL = [
   '.',
   'index.html',

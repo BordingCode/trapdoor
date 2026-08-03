@@ -305,6 +305,16 @@ export class World {
         }
       }
       if (m.landed && !m.wasLanded) { m.wasLanded = true; if (m.quake) this.emit('slam', m.x + m.w / 2, m.y + m.h); }
+      // `gone` movers dissolve once they have arrived — a lift that waits at the top is a
+      // lift the next ride gets crushed against, and one that waits is not much of a threat
+      if (m.landed && m.gone != null) {
+        m.goneT = (m.goneT == null ? m.gone : m.goneT) - dt;
+        if (m.goneT <= 0) {
+          this.emit('collapse', m.x + m.w / 2, m.y + m.h / 2);
+          this.movers.splice(i, 1);
+          continue;
+        }
+      }
       if (m.bounce && (m.landed)) { /* ping-pong movers */
         m.landed = false; m.wasLanded = false;
         if (m.stopX != null && m.homeX != null) { const t = m.stopX; m.stopX = m.homeX; m.homeX = t; m.vx = -m.vx || (m.stopX > m.x ? m.speed : -m.speed); }
@@ -612,7 +622,7 @@ export class World {
           stopX: a.sx != null ? a.sx * TILE : null, stopY: a.sy != null ? a.sy * TILE : null,
           homeX: a.x * TILE, homeY: a.y * TILE, speed: Math.abs(a.vx || a.vy || 0),
           // a blade (`kill`) is usually `solid:false` too — you cannot ride what cuts you
-          bounce: !!a.bounce, solid: a.solid !== false, kill: !!a.kill,
+          bounce: !!a.bounce, solid: a.solid !== false, kill: !!a.kill, gone: a.gone ?? null,
           quake: a.quake !== false, delay: a.wait || 0, col: a.col || null,
         });
         this.emit('trap');

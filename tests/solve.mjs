@@ -109,9 +109,9 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false, arm = 0
 
 // Levels whose solution needs patience the bot doesn't have (waiting for a moving
 // platform to come back). They're covered by hand-written routes in routes.mjs instead.
-const ROUTED = new Set([22, 29]);
+const ROUTED = new Set([22, 29, 38]);
 // levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
-const ROUTED_NERVE = new Set([14, 18, 29]);
+const ROUTED_NERVE = new Set([14, 18, 29, 38]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);

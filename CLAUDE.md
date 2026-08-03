@@ -2,6 +2,7 @@
 
 A short troll platformer, in the spirit of *Level Devil*: every level looks like a
 harmless tutorial, and then it isn't. Walk to the door. The floor has other ideas.
+40 levels in five chapters, plus one nerve-locked bonus level per chapter.
 
 Live: https://bordingcode.github.io/trapdoor/ · repo `BordingCode/trapdoor` (branch `main`)
 
@@ -28,8 +29,11 @@ Walking to the door is reaction. The **nerve** is the choice.
   *un-fired* triggers and describes them as shapes.
 - You start with none. That is deliberate: a first encounter with a level must stay a
   genuine ambush, so the economy keeps you broke early and informed later.
-- Collecting a chapter's 8 nerves opens its **bonus level** (indices 24–26, appended at
-  the end so existing level indices and saves never shift).
+- Collecting a chapter's 8 nerves opens its **bonus level**. Bonus levels are appended at
+  the END of the array (currently 40–44) so the main run stays contiguous — which means
+  adding a chapter *shifts them*, and every per-level record is keyed by index. `save.js`
+  writes the layout it used (`bonusAt`) and remaps those rows on load; `unlocked` is
+  derived from `cleared` rather than trusted. See rule 7 in `tests/rules.mjs`.
 - `The Whole Truth` sets `liar: true` — its glimpse hides one real trap and invents
   fake ones. The last lie the game tells you.
 
@@ -69,6 +73,22 @@ the door travels per frame, so short hops were exploitable and long ones tunnell
 level that has a moving door). Note that *Sharp Enough* was only ever "solved" by that
 exploit, which hid how hard its real route was — fixing the rule is what exposed it.
 
+## The trap vocabulary added in chapters 4-5
+The first three chapters had used up the original actions, so these came with *Bad Faith*
+and *The Grudge* — all still pure data:
+
+- `spikes hold: s` — the bank pulls back in after s seconds. A rhythm to read, not a wall.
+- `crush kill: true` — a blade. Pair it with `solid: false`: you must not be able to ride
+  what cuts you. `crush gone: s` dissolves it s seconds after it arrives, which is what
+  makes *Elevator* repeatable — a lift parked at the top crushes the next ride against it.
+- `after: n` on a trigger — it only arms once the level has killed you n times *this
+  visit* (`World.deaths` survives `reset()`, so leaving the level forgets the grudge).
+  `solve.mjs` proves such a level is still beatable with every `after` trap armed.
+- `fakedoor` — the door is a prop. It renders dimmed, and a glimpse crosses it out.
+- A solid mover spawned overlapping the player **ejects them sideways** rather than
+  lifting them (`resolveAxis` runs before `pushPlayer`). *Elevator*'s lift therefore
+  starts one row inside the floor.
+
 ## Physics numbers the levels are designed against
 Run 168px/s · jump 520 → ~93px high (2.9 tiles) and ~120px across · gravity 1450 ·
 coyote 0.10s · jump buffer 0.13s. `tests/structure.mjs` asserts these, because level
@@ -82,9 +102,12 @@ node tests/solve.mjs 7   # just level 8, for debugging one level
 `solve.mjs` runs a dumb bot through the real simulation to prove every level is
 finishable, then runs each again *greedily* to prove the nerve can be taken **and carried
 to the door alive** — that's the bar, so a nerve you can only reach by dying is a failure.
-Three levels need a deliberate line the bot won't find (moving platforms; the Gauntlet and
-Rising nerve detours), so they have hand-written routes in `routes.mjs` — keep the
-`ROUTED` / `ROUTED_NERVE` sets in `solve.mjs` in step with them.
+Five levels need a deliberate line the bot won't find, so they have hand-written routes in
+`routes.mjs` — keep the `ROUTED` / `ROUTED_NERVE` sets in `solve.mjs` in step with them.
+The bot cannot plan a *detour*: on any level where getting up means going somewhere else
+first (Rising, The Long Climb, Elevator) it walks under the door and jumps on the spot
+until the clock runs out. That symptom always means "write a route", not "the level is
+broken".
 
 Watch out when placing a nerve on a timed level: it has to be affordable *round trip*.
 Rising's spot was only reachable if dying still banked it, so it moved (and its acid eased
