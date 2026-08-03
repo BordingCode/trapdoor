@@ -2,7 +2,7 @@
 
 A short troll platformer, in the spirit of *Level Devil*: every level looks like a
 harmless tutorial, and then it isn't. Walk to the door. The floor has other ideas.
-40 levels in five chapters, plus one nerve-locked bonus level per chapter.
+48 levels in six chapters, plus one nerve-locked bonus level per chapter.
 
 Live: https://bordingcode.github.io/trapdoor/ · repo `BordingCode/trapdoor` (branch `main`)
 
@@ -73,7 +73,7 @@ the door travels per frame, so short hops were exploitable and long ones tunnell
 level that has a moving door). Note that *Sharp Enough* was only ever "solved" by that
 exploit, which hid how hard its real route was — fixing the rule is what exposed it.
 
-## The trap vocabulary added in chapters 4-5
+## The trap vocabulary added in chapters 4-6
 The first three chapters had used up the original actions, so these came with *Bad Faith*
 and *The Grudge* — all still pure data:
 
@@ -88,6 +88,21 @@ and *The Grudge* — all still pure data:
 - A solid mover spawned overlapping the player **ejects them sideways** rather than
   lifting them (`resolveAxis` runs before `pushPlayer`). *Elevator*'s lift therefore
   starts one row inside the floor.
+
+Chapter 6 stops attacking the room and attacks the player instead:
+
+- `flip` reverses left/right. The bot in `solve.mjs` and the routes in `routes.mjs` both
+  invert their input when `w.flip` is set — it reads the state off the world exactly like
+  a player reads the halo over their own head. It is not allowed to know anything else.
+- `nojump` takes the jump away until `nojump: 0`. Levels using it must have no *required*
+  jump inside the window.
+- `crush chase: speed` steers at the player every frame. **A chaser can never be jumped
+  over** — it re-centres under you while you are airborne — so it may only ever start
+  *behind* you, and its speed must stay under the 168 run speed. What it actually does is
+  delete standing still, which is what makes a wide `hold:` spike bank (4 tiles: too wide
+  to jump, so you must wait for it) genuinely frightening.
+- A blinking door is just `fakedoor` on an `every:` trigger, moving between two spots. Do
+  not pair it with a chaser: the level needs you to be able to walk back the way you came.
 
 ## Physics numbers the levels are designed against
 Run 168px/s · jump 520 → ~93px high (2.9 tiles) and ~120px across · gravity 1450 ·

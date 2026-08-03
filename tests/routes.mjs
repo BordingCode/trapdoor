@@ -14,7 +14,8 @@ function run(levelIndex, policy, maxTime = 30, holdFrames = 10) {
     if (jump && w.player.grounded && jf <= 0) jf = holdFrames;
     const jn = jf > 0;
     if (jf > 0) jf--;
-    w.step(STEP, { left: dir < 0, right: dir > 0, jumpHeld: jn, jumpPressed: jn && !held });
+    const bd = w.flip ? -dir : dir;
+    w.step(STEP, { left: bd < 0, right: bd > 0, jumpHeld: jn, jumpPressed: jn && !held });
     held = jn;
     w.events.length = 0;
     t += STEP;
@@ -135,12 +136,33 @@ function elevatorPolicy(w) {
   return { dir, jump };
 }
 
+// "Legs": the gaps do not move, but your jump is only available half the time. Hold at
+// each lip until the legs come back, and spend one extra jump on the nerve at the end.
+const GAPS = [288, 512];          // px of each gap's left lip
+function legsPolicy(w) {
+  const p = w.player;
+  const n = w.nerve;
+  if (!p.grounded) return { dir: 1, jump: false };
+  for (const e of GAPS) {
+    const gap = e - (p.x + p.w);
+    if (gap > -4 && gap < 26) return w.nojump ? { dir: 0, jump: false } : { dir: 1, jump: true };
+  }
+  if (n && !n.got) {              // the nerve hangs one jump above the run-in to the door
+    if (p.x < 640) return { dir: 1, jump: false };
+    if (p.x > 652) return { dir: -1, jump: false };
+    return w.nojump ? { dir: 0, jump: false } : { dir: 0, jump: true };
+  }
+  // that jump carries you clean over the doorway, so walk back into it
+  return { dir: Math.abs(p.x - 684) < 6 ? 0 : Math.sign(684 - p.x), jump: false };
+}
+
 const cases = [
   { i: 22, name: 'Nowhere To Stand', requireNerve: true, policy: platformPolicy },
   { i: 18, name: 'Gauntlet (with nerve)', requireNerve: true, policy: gauntletPolicy },
   { i: 14, name: 'Rising (with nerve)', requireNerve: true, policy: risingPolicy },
   { i: 29, name: 'The Long Climb', requireNerve: true, policy: longClimbPolicy },
   { i: 38, name: 'Elevator', requireNerve: true, policy: elevatorPolicy },
+  { i: 41, name: 'Legs (with nerve)', requireNerve: true, policy: legsPolicy },
 ];
 
 let fails = 0;

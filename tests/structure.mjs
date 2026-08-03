@@ -5,7 +5,7 @@ import { World, PHYS } from '../js/game/world.js';
 import { LEVELS, CHAPTERS, MAIN_LEVELS } from '../js/game/levels.js';
 import { COLS, ROWS, TILE } from '../js/engine/canvas.js';
 
-const ACTIONS = new Set(['set', 'spikes', 'crush', 'drop', 'dart', 'door', 'fakedoor', 'grav', 'ice', 'dark', 'acid', 'push', 'shake', 'say', 'sfx']);
+const ACTIONS = new Set(['set', 'spikes', 'crush', 'drop', 'dart', 'door', 'fakedoor', 'grav', 'ice', 'dark', 'acid', 'push', 'shake', 'say', 'sfx', 'flip', 'nojump']);
 const CONDS = new Set(['zone', 'stand', 'time', 'move', 'air', 'land', 'door', 'pastx', 'above']);
 
 let fails = 0;

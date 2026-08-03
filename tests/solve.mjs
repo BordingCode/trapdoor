@@ -88,7 +88,10 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false, arm = 0
     const jumpNow = jumpFrames > 0;
     if (jumpFrames > 0) jumpFrames--;
 
-    const inp = { left: dir < 0, right: dir > 0, jumpHeld: jumpNow, jumpPressed: jumpNow && !held };
+    // the controls can be reversed on you; the bot reads that off the world, same as a
+    // player reads it off the halo. It is not allowed to know anything else.
+    const bdir = w.flip ? -dir : dir;
+    const inp = { left: bdir < 0, right: bdir > 0, jumpHeld: jumpNow, jumpPressed: jumpNow && !held };
     held = jumpNow;
 
     w.step(STEP, inp);
@@ -111,7 +114,7 @@ function play(level, seed, maxTime = 34, maxDeaths = 30, greedy = false, arm = 0
 // platform to come back). They're covered by hand-written routes in routes.mjs instead.
 const ROUTED = new Set([22, 29, 38]);
 // levels whose NERVE needs a deliberate line (the bot won't find it) — routes.mjs proves these
-const ROUTED_NERVE = new Set([14, 18, 29, 38]);
+const ROUTED_NERVE = new Set([14, 18, 29, 38, 41]);
 
 const only = process.argv[2] != null ? Number(process.argv[2]) : null;
 const list = only != null ? [[LEVELS[only], only]] : LEVELS.map((L, i) => [L, i]);

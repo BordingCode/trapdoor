@@ -345,6 +345,18 @@ export function render(view, w, fx, t) {
         case 'grav':
           arrow(ctx, WORLD_W - 22, WORLD_H / 2, g.v < 0 ? -Math.PI / 2 : Math.PI / 2, 18);
           break;
+        case 'flip':
+          // two arrows crossing: the controls are about to change their minds
+          arrow(ctx, WORLD_W / 2 - 26, 40, Math.PI, 16);
+          arrow(ctx, WORLD_W / 2 + 26, 40, 0, 16);
+          break;
+        case 'nojump':
+          // a barred arrow: no legs, for a while
+          arrow(ctx, WORLD_W / 2, 74, -Math.PI / 2, 16);
+          ctx.beginPath();
+          ctx.moveTo(WORLD_W / 2 - 14, 82); ctx.lineTo(WORLD_W / 2 + 14, 58);
+          ctx.stroke();
+          break;
         default:
           break;
       }
@@ -364,11 +376,22 @@ export function render(view, w, fx, t) {
     ctx.fillStyle = C.player;
     roundRect(ctx, px, py, wd, h, 4);
     ctx.fill();
+    if (w.nojump) {                       // legs withdrawn: they go dark and heavy
+      ctx.fillStyle = '#8a5a66';
+      ctx.fillRect(px, py + h - 6, wd, 6);
+    }
     ctx.fillStyle = C.playerDark;
     const ey = py + (w.gravDir > 0 ? h * 0.32 : h * 0.5);
     const ex = px + wd / 2 + p.face * 3;
     ctx.fillRect(ex - 5, ey, 3, 4);
     ctx.fillRect(ex + 2, ey, 3, 4);
+    if (w.flip) {                         // controls reversed: a spun halo, always visible
+      ctx.strokeStyle = 'rgba(110,231,255,0.9)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(px + wd / 2, py - 7, 7, t * 6, t * 6 + Math.PI * 1.35);
+      ctx.stroke();
+    }
   }
 
   // ---- particles

@@ -6,13 +6,18 @@ A short troll platformer. Every level looks like a harmless tutorial: a flat flo
 door, three seconds of walking. Then the floor gives way, or the spikes come up, or the
 door walks off.
 
-40 hand-made levels across five chapters, plus five you have to earn. Instant respawn,
+48 hand-made levels across six chapters, plus six you have to earn. Instant respawn,
 infinite retries, a death counter that will judge you. Works offline, installs to a phone
 home screen.
 
 The later chapters stop playing fair in new ways: spike banks that pull back in on a beat,
 blades you cannot ride, a door that turns out to be a prop, wind, one-way climbs, and
 levels that arm an extra trap every time they kill you.
+
+Then the last chapter stops attacking the room and starts on you: your controls get
+reversed, your jump gets taken away for a second and a half at a time, the door is only a
+door two thirds of a second at a time, and something slow starts following you that cannot
+be jumped over — only outrun.
 
 **Nerve.** Every level hides one, always somewhere the safe route doesn't go — floating
 over the trapdoor, at dart height, inside the corridor the crusher is about to fill.

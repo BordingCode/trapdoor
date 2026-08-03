@@ -81,6 +81,8 @@ export class World {
     this.gravDir = 1;
     this.ice = 0;
     this.dark = 0;
+    this.flip = 0;         // left is right: the controls, not the world
+    this.nojump = 0;       // your legs, temporarily withdrawn
     this.acid = null;      // { y, target, speed }
     this.time = 0;
     this.state = 'play';   // play | dead | won
@@ -160,6 +162,7 @@ export class World {
     let dir = 0;
     if (input.left) dir -= 1;
     if (input.right) dir += 1;
+    if (this.flip) dir = -dir;      // the one trap that isn't in the level, it's in you
     if (dir !== 0) { p.face = dir; this.startedMoving = true; }
 
     const accel = onIce ? PHYS.iceAccel : (p.grounded ? PHYS.accelGround : PHYS.accelAir);
@@ -184,7 +187,7 @@ export class World {
     p.coyote = p.grounded ? PHYS.coyote : Math.max(0, p.coyote - dt);
     p.buffer = Math.max(0, p.buffer - dt);
     if (input.jumpPressed) p.buffer = PHYS.buffer;
-    if (p.buffer > 0 && p.coyote > 0) {
+    if (p.buffer > 0 && p.coyote > 0 && !this.nojump) {
       p.vy = -PHYS.jumpVel * this.gravDir;
       p.buffer = 0; p.coyote = 0; p.grounded = false; p.squash = -0.35;
       this.emit('jump');
@@ -283,6 +286,12 @@ export class World {
     for (let i = this.movers.length - 1; i >= 0; i--) {
       const m = this.movers[i];
       if (m.delay > 0) { m.delay -= dt; continue; }
+      // a chaser steers at you every frame. Always slower than a run: it can't catch you,
+      // it can only make standing still stop being an option
+      if (m.chase) {
+        const dx = (this.player.x + this.player.w / 2) - (m.x + m.w / 2);
+        m.vx = (Math.abs(dx) < 4 ? 0 : Math.sign(dx)) * m.chase;
+      }
       if (m.grav) m.vy = Math.min(900, m.vy + 1900 * dt);
       const oldX = m.x, oldY = m.y;
       m.x += m.vx * dt;
@@ -484,6 +493,8 @@ export class World {
           case 'push': push('gust', 0, 0, WORLD_W, WORLD_H, { vx: a.vx || 0, vy: a.vy || 0 }); break;
           case 'fakedoor': if (a.v !== false) push('liedoor', this.door.x, this.door.y, this.door.w, this.door.h); break;
           case 'grav': push('grav', 0, 0, 0, 0, { v: a.v }); break;
+          case 'flip': if (a.v !== 0) push('flip', 0, 0, 0, 0); break;
+          case 'nojump': if (a.v !== 0) push('nojump', 0, 0, 0, 0); break;
           case 'acid': push('acid', 0, a.y * TILE, WORLD_W, 4); break;
           case 'ice': push('ice', 0, 0, 0, 0); break;
           case 'dark': push('dark', 0, 0, 0, 0); break;
@@ -623,6 +634,7 @@ export class World {
           homeX: a.x * TILE, homeY: a.y * TILE, speed: Math.abs(a.vx || a.vy || 0),
           // a blade (`kill`) is usually `solid:false` too — you cannot ride what cuts you
           bounce: !!a.bounce, solid: a.solid !== false, kill: !!a.kill, gone: a.gone ?? null,
+          chase: a.chase ?? null,
           quake: a.quake !== false, delay: a.wait || 0, col: a.col || null,
         });
         this.emit('trap');
@@ -652,6 +664,8 @@ export class World {
       }
       case 'fakedoor': { this.door.fake = !!(a.v ?? true); break; }
       case 'grav': { this.gravDir = a.v; this.emit('trap'); break; }
+      case 'flip': { this.flip = a.v ?? 1; this.emit(this.flip ? 'trap' : 'tick'); break; }
+      case 'nojump': { this.nojump = a.v ?? 1; this.emit(this.nojump ? 'trap' : 'tick'); break; }
       case 'ice': { this.ice = a.v ?? 1; break; }
       case 'dark': { this.dark = a.v ?? 0.85; break; }
       case 'acid': { this.acid = { y: (a.from ?? ROWS) * TILE, target: a.y * TILE, speed: a.speed ?? 26 }; break; }

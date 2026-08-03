@@ -17,6 +17,8 @@
 //   spikes hold:s pull back in after s seconds — a rhythm instead of a wall
 //   crush kill:true is a blade (give it solid:false so you cannot ride what cuts you)
 //   crush gone:s dissolves s seconds after it arrives — a lift that does not wait around
+//   crush chase:speed steers at you every frame — keep it under run speed (168)
+//   flip(v) reverses left/right · nojump(v) takes your jump away until v:0
 
 const E = '........................';
 const F = '########################';
@@ -491,17 +493,17 @@ export const LEVELS = [
     triggers: [
       { on: 'pastx', x: 4, do: [{ t: 'say', text: 'They breathe. Learn the count.', life: 3 }] },
       // spikes that pull back in: the floor is only lethal on the beat
-      { on: 'pastx', x: 4, every: 2.0, do: [
-        { t: 'spikes', x: 8, y: 10, w: 2, h: 1, from: 'up', hold: 0.95 },
-        { t: 'spikes', x: 18, y: 10, w: 1, h: 1, from: 'up', hold: 0.6, d: 0.5 },
-        { t: 'spikes', x: 14, y: 10, w: 2, h: 1, from: 'up', hold: 0.95, d: 1.0 },
+      { on: 'pastx', x: 4, every: 1.75, do: [
+        { t: 'spikes', x: 8, y: 10, w: 2, h: 1, from: 'up', hold: 1.05 },
+        { t: 'spikes', x: 18, y: 10, w: 1, h: 1, from: 'up', hold: 0.7, d: 0.5 },
+        { t: 'spikes', x: 14, y: 10, w: 2, h: 1, from: 'up', hold: 1.05, d: 0.9 },
       ] },
     ],
   },
   {
     name: 'Sawmill',
     chapter: 3,
-    nerve: [12, 8],
+    nerve: [16, 8],   // between the wide bank and the right ledge, in the blade's lane
     grid: [
       E, E, E, E, E, E, E, E, E,
       '.......###.......###....',
@@ -510,12 +512,16 @@ export const LEVELS = [
     ],
     triggers: [
       { on: 'pastx', x: 4, do: [
-        { t: 'crush', x: 23, y: 10, w: 2, h: 1, vx: -165, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+        { t: 'crush', x: 23, y: 10, w: 2, h: 1, vx: -205, sx: 0, bounce: true, kill: true, solid: false, quake: false },
         { t: 'say', text: 'The ledges are for standing on.', life: 3 },
       ] },
-      // …and this is why they aren't
-      { on: 'pastx', x: 11, do: [
-        { t: 'crush', x: -2, y: 8, w: 2, h: 1, vx: 175, sx: 22, bounce: true, kill: true, solid: false, quake: false },
+      // a bank too wide to jump: the ledge stops being optional
+      { on: 'pastx', x: 6, every: 2.2, do: [
+        { t: 'spikes', x: 11, y: 10, w: 4, h: 1, from: 'up', hold: 0.9 },
+      ] },
+      // …and this is why the ledge isn't safe either
+      { on: 'pastx', x: 9, do: [
+        { t: 'crush', x: -2, y: 8, w: 2, h: 1, vx: 205, sx: 22, bounce: true, kill: true, solid: false, quake: false },
         { t: 'say', text: 'Were.', life: 2 },
       ] },
     ],
@@ -578,7 +584,7 @@ export const LEVELS = [
     ],
     triggers: [
       { on: 'move', do: [{ t: 'say', text: 'The ceiling is not fond of you either.', life: 3 }] },
-      { on: 'pastx', x: 3, every: 1.25, do: [
+      { on: 'pastx', x: 3, every: 1.0, do: [
         { t: 'dart', x: 9, y: 0, vx: 0, vy: 340 },
         { t: 'dart', x: 19, y: 0, vx: 0, vy: 340, d: 0.3 },
         { t: 'dart', x: 12, y: 0, vx: 0, vy: 340, d: 0.62 },
@@ -643,7 +649,7 @@ export const LEVELS = [
     triggers: [
       { on: 'pastx', x: 4, do: [{ t: 'dark', v: 0.92 }, { t: 'say', text: 'Count it. Do not look.', life: 3 }] },
       // a wave of spikes travelling right: stay behind the beat and it opens for you
-      { on: 'pastx', x: 4, every: 1.8, do: [
+      { on: 'pastx', x: 4, every: 1.5, do: [
         { t: 'spikes', x: 8, y: 10, w: 2, h: 1, from: 'up', hold: 0.8 },
         { t: 'spikes', x: 12, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 0.6 },
         { t: 'spikes', x: 16, y: 10, w: 2, h: 1, from: 'up', hold: 0.8, d: 1.2 },
@@ -710,7 +716,10 @@ export const LEVELS = [
       { on: 'move', do: [{ t: 'say', text: 'Keep moving. Both reasons.', life: 3 }] },
       { on: 'pastx', x: 5, do: [
         // it does not stop at the wall: what is left of the floor gets a second pass
-        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -195, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -235, sx: 0, bounce: true, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 7, every: 2.1, do: [
+        { t: 'spikes', x: 12, y: 10, w: 4, h: 1, from: 'up', hold: 0.8 },
       ] },
     ],
   },
@@ -721,10 +730,10 @@ export const LEVELS = [
     grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
     triggers: [
       { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice, and a metronome.', life: 3 }] },
-      { on: 'pastx', x: 3, every: 1.7, do: [
-        { t: 'spikes', x: 9, y: 10, w: 1, h: 1, from: 'up', hold: 0.75 },
-        { t: 'spikes', x: 14, y: 10, w: 1, h: 1, from: 'up', hold: 0.75, d: 0.85 },
-        { t: 'spikes', x: 19, y: 10, w: 1, h: 1, from: 'up', hold: 0.75, d: 1.4 },
+      { on: 'pastx', x: 3, every: 1.4, do: [
+        { t: 'spikes', x: 9, y: 10, w: 1, h: 1, from: 'up', hold: 0.85 },
+        { t: 'spikes', x: 14, y: 10, w: 1, h: 1, from: 'up', hold: 0.85, d: 0.7 },
+        { t: 'spikes', x: 19, y: 10, w: 1, h: 1, from: 'up', hold: 0.85, d: 1.15 },
       ] },
     ],
   },
@@ -783,6 +792,179 @@ export const LEVELS = [
         { t: 'spikes', x: 14, y: 0, w: 2, h: 1, from: 'down', d: 1.2 },
       ] },
       { on: 'door', d: 1.6, needs: 4, do: [{ t: 'say', text: 'Fine. Take it.', life: 3 }] },
+    ],
+  },
+
+  // ---------------------------------------------------------------- CHAPTER 6
+  // Contempt. By here the level has run out of things to do TO the room, so it starts on
+  // you instead: your controls, your legs, and something that follows you.
+  {
+    name: 'Wrong Way',
+    chapter: 5,
+    nerve: [8, 8],   // behind you, once "behind" has stopped meaning what it did
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 6, do: [
+        { t: 'flip', v: 1 },
+        { t: 'shake', mag: 6 },
+        { t: 'say', text: 'Left is right now. Do keep up.', life: 3.2 },
+      ] },
+      { on: 'stand', x: 12, y: 11, w: 2, do: [
+        { t: 'set', x: 12, y: 11, w: 2, h: 2, c: '.' },
+        { t: 'shake', mag: 5 },
+      ] },
+      { on: 'pastx', x: 15, do: [{ t: 'spikes', x: 18, y: 10, w: 1, h: 1, from: 'up' }] },
+    ],
+  },
+  {
+    name: 'Legs',
+    chapter: 5,
+    nerve: [20, 8],   // one more jump than the route needs, and jumps are rationed
+    grid: [
+      E, E, E, E, E, E, E, E, E, E, SD,
+      '#########..#####..######',
+      '#########..#####..######',
+    ],
+    triggers: [
+      { on: 'pastx', x: 3, do: [{ t: 'say', text: 'Your legs work when I say they do.', life: 3.4 }] },
+      // 1.5s without a jump, 1.5s with one. The gaps do not move; you have to.
+      { on: 'pastx', x: 3, every: 2.8, do: [
+        { t: 'nojump', v: 1 }, { t: 'shake', mag: 3 },
+        { t: 'nojump', v: 0, d: 1.3 },
+      ] },
+    ],
+  },
+  {
+    name: 'Hunted',
+    chapter: 5,
+    nerve: [13, 8],
+    grid: [
+      E, E, E, E, E, E, E, E, E, E,
+      SD,
+      '####oooooooooooooooo####',
+      '####oooooooooooooooo####',
+    ],
+    triggers: [
+      { on: 'move', do: [{ t: 'say', text: 'It knows where you are.', life: 2.8 }] },
+      // slower than a run, so it can never catch you — it just deletes standing still
+      // it starts behind you and never stops. Note a chaser can NEVER be jumped over: it
+      // steers under you while you are in the air. It can only ever be outrun.
+      { on: 'pastx', x: 4, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 118, kill: true, solid: false, quake: false },
+      ] },
+      // FOUR tiles wide: a jump clears about three and a half, so these cannot be hopped.
+      // You have to stand and wait for them, which is the whole point of the thing behind you.
+      { on: 'pastx', x: 6, every: 2.0, do: [
+        { t: 'spikes', x: 11, y: 10, w: 4, h: 1, from: 'up', hold: 0.85 },
+        { t: 'spikes', x: 17, y: 10, w: 4, h: 1, from: 'up', hold: 0.85, d: 1.0 },
+      ] },
+    ],
+  },
+  {
+    name: 'The Blink',
+    chapter: 5,
+    nerve: [15, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 4, do: [{ t: 'say', text: 'It is only a door some of the time.', life: 3.2 }] },
+      // a prop that becomes a door for two thirds of a second, in two places, forever
+      { on: 'pastx', x: 4, every: 3.0, do: [
+        { t: 'fakedoor' },
+        { t: 'door', x: 12, y: 10, d: 0.05 },
+        { t: 'fakedoor', v: false, d: 0.8 },     // a door for 0.55s, here
+        { t: 'fakedoor', d: 1.35 },
+        { t: 'door', x: 21, y: 10, d: 1.4 },
+        { t: 'fakedoor', v: false, d: 2.25 },    // …and for 0.55s, there
+        { t: 'fakedoor', d: 2.8 },
+      ] },
+      // pacing between the two has to cost something, and a chaser would wall off the
+      // half of the level you need to walk back into
+      { on: 'pastx', x: 6, every: 1.3, do: [{ t: 'dart', x: 23, y: 10, vx: -290 }] },
+    ],
+  },
+  {
+    name: 'Two Minds',
+    chapter: 5,
+    nerve: [17, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'Ice. And second thoughts.', life: 3 }] },
+      { on: 'pastx', x: 4, every: 2.4, do: [
+        { t: 'flip', v: 1 }, { t: 'shake', mag: 4 },
+        { t: 'flip', v: 0, d: 1.2 },
+      ] },
+      { on: 'pastx', x: 4, every: 2.0, do: [{ t: 'spikes', x: 12, y: 10, w: 2, h: 1, from: 'up', hold: 0.9 }] },
+    ],
+  },
+  {
+    name: 'The Presses',
+    chapter: 5,
+    nerve: [12, 8],   // inside a press shaft, which is open exactly between stamps
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'pastx', x: 3, do: [{ t: 'say', text: 'Two of them. Count the gap.', life: 3 }] },
+      { on: 'pastx', x: 3, do: [
+        { t: 'crush', x: 9, y: -4, w: 4, h: 4, vy: 280, sy: 8, bounce: true },
+        { t: 'crush', x: 15, y: -4, w: 4, h: 4, vy: 280, sy: 8, bounce: true, wait: 1.0 },
+        // the last one comes down on the doorway itself
+        { t: 'crush', x: 20, y: -4, w: 4, h: 4, vy: 280, sy: 8, bounce: true, wait: 2.0 },
+      ] },
+      // and the places you wait between stamps are on a beat of their own
+      { on: 'pastx', x: 6, every: 2.0, do: [
+        { t: 'spikes', x: 13, y: 10, w: 2, h: 1, from: 'up', hold: 0.7 },
+        { t: 'spikes', x: 19, y: 10, w: 1, h: 1, from: 'up', hold: 0.7, d: 1.0 },
+      ] },
+    ],
+  },
+  {
+    name: 'Relentless',
+    chapter: 5,
+    nerve: [10, 8],   // mid-air between the first two stones, with the floor going lethal
+    grid: [
+      E, E, E, E, E, E, E, E,
+      '....................D...',
+      '......###...###...######',   // stepping stones, 64px up — the floor is about to go
+      '..S.....................',
+      F, F,
+    ],
+    triggers: [
+      { on: 'move', do: [
+        { t: 'acid', y: 10, from: 13, speed: 26 },
+        { t: 'say', text: 'The floor is on a timer. So are you.', life: 3.2 },
+      ] },
+      { on: 'pastx', x: 4, do: [
+        { t: 'crush', x: -2, y: 9, w: 2, h: 1, chase: 150, kill: true, solid: false, quake: false },
+      ] },
+    ],
+  },
+  {
+    name: 'Contempt',
+    chapter: 5,
+    nerve: [7, 8],
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'time', s: 0.4, do: [{ t: 'say', text: 'You should not be here.', life: 2.8 }] },
+      { on: 'pastx', x: 4, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 112, kill: true, solid: false, quake: false },
+      ] },
+      // the two of them never overlap: half a second of reversed controls, then, later,
+      // three quarters of a second without a jump. Either one alone is survivable.
+      { on: 'pastx', x: 6, every: 3.6, do: [
+        { t: 'flip', v: 1 }, { t: 'shake', mag: 4 },
+        { t: 'flip', v: 0, d: 0.9 },
+      ] },
+      { on: 'pastx', x: 13, every: 3.6, delay: 2.0, do: [
+        { t: 'nojump', v: 1 },
+        { t: 'nojump', v: 0, d: 0.75 },
+      ] },
+      // the refuge is built ahead of you, not behind: walking back into the chaser for it
+      // would make the finish a coin flip rather than a run
+      { on: 'door', d: 2.2, do: [
+        { t: 'set', x: 16, y: 9, w: 5, h: 1, c: '#' },
+        { t: 'door', x: 18, y: 8 },
+        { t: 'say', text: 'Up. With all of that still going on.', life: 3.2 },
+      ] },
+      { on: 'door', d: 1.8, needs: 4, do: [{ t: 'say', text: '…fine.', life: 2.6 }] },
     ],
   },
 
@@ -879,6 +1061,29 @@ export const LEVELS = [
     ],
   },
   {
+    name: 'Nothing Left',
+    chapter: 5,
+    bonus: true,
+    grid: [E, E, E, E, E, E, E, E, E, E, SD, F, F],
+    triggers: [
+      { on: 'move', do: [{ t: 'ice', v: 1 }, { t: 'say', text: 'No floor tricks left. Just this.', life: 3.2 }] },
+      { on: 'pastx', x: 3, do: [
+        { t: 'crush', x: -2, y: 10, w: 2, h: 1, chase: 138, kill: true, solid: false, quake: false },
+      ] },
+      { on: 'pastx', x: 3, every: 2.6, do: [
+        { t: 'fakedoor' },
+        { t: 'door', x: 11, y: 10, d: 0.05 },
+        { t: 'fakedoor', v: false, d: 0.7 },
+        { t: 'fakedoor', d: 1.3 },
+        { t: 'door', x: 20, y: 10, d: 1.35 },
+        { t: 'fakedoor', v: false, d: 1.95 },
+      ] },
+      { on: 'pastx', x: 5, every: 2.0, do: [
+        { t: 'spikes', x: 15, y: 10, w: 1, h: 1, from: 'up', hold: 0.8 },
+      ] },
+    ],
+  },
+  {
     name: 'Spite',
     chapter: 4,
     bonus: true,
@@ -893,12 +1098,12 @@ export const LEVELS = [
         { t: 'ice', v: 1 },
         { t: 'say', text: 'Ice, a floor that is leaving, and me.', life: 3.4 },
       ] },
-      { on: 'pastx', x: 4, every: 2.1, do: [
-        { t: 'spikes', x: 11, y: 10, w: 1, h: 1, from: 'up', hold: 0.7 },
-        { t: 'spikes', x: 16, y: 10, w: 1, h: 1, from: 'up', hold: 0.7, d: 1.0 },
+      { on: 'pastx', x: 4, every: 1.7, do: [
+        { t: 'spikes', x: 11, y: 10, w: 1, h: 1, from: 'up', hold: 0.8 },
+        { t: 'spikes', x: 16, y: 10, w: 1, h: 1, from: 'up', hold: 0.8, d: 0.85 },
       ] },
       { on: 'pastx', x: 9, do: [
-        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -210, sx: 0, kill: true, solid: false, quake: false },
+        { t: 'crush', x: 24, y: 10, w: 2, h: 1, vx: -245, sx: 0, kill: true, solid: false, quake: false },
       ] },
     ],
   },
@@ -913,6 +1118,7 @@ export const CHAPTERS = [
   { name: 'Malice', tag: 'Now it is personal.' },
   { name: 'Bad Faith', tag: 'It learns from your deaths.' },
   { name: 'The Grudge', tag: 'It has stopped pretending.' },
+  { name: 'Contempt', tag: 'Now it comes for the controls.' },
 ];
 
 // Shown after a few deaths on the same level — the level gloating, not a hint.
